@@ -1,2 +1,2 @@
 # WH-SUEPS
-Realtime script updates.
+My script updates
