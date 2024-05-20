@@ -134,13 +134,20 @@ def ele_hists(events, etas, hists):
     ele_filthist = hists[1]
     eta_min = etas[0]
     eta_max = etas[1]
-    # trigger
-    triggerSingleElectron = (
-        events["HLT_Ele32_WPTight_Gsf"]
-        | events["HLT_Ele115_CaloIdVT_GsfTrkIdT"]
-        | events["HLT_Photon175"]
-        | events["HLT_Photon200"]
-    )
+
+    # Trigger selection
+    if "UL17" in sample_name or "UL18" in sample_name:
+        triggerSingleElectron = (
+            events["HLT_Ele32_WPTight_Gsf"] |
+            events["HLT_Ele115_CaloIdVT_GsfTrkIdT"] |
+            events["HLT_Photon200"]
+        )
+    else:
+        triggerSingleElectron = (
+            events["HLT_Ele32_WPTight_Gsf"] |
+            events["HLT_Ele115_CaloIdVT_GsfTrkIdT"] |
+            events["HLT_Photon175"]
+        )
     # quality requirements for electrons
     ele_quality_check = (
         (events["Electron_cutBased"] >= 2)
@@ -203,7 +210,7 @@ legend = ROOT.TLegend(0.5,0.1,0.9,0.4)
 legend.AddEntry(eta1_effs,"|#eta|<0.9","l")
 legend.AddEntry(eta2_effs,"0.9<|#eta|<1.444","l")
 legend.AddEntry(eta3_effs,"1.566<|#eta|<2.5","l")
-legend.AddEntry(ROOT.nullptr, "T = "+temp+"GeV", "+year,"")
+legend.AddEntry(ROOT.nullptr, "T = "+temp+"GeV"+year,"")
 legend.AddEntry(ROOT.nullptr,"SUEP decay type: "+decay_type,"")
 legend.AddEntry(ROOT.nullptr,"Dark meson mass = "+ md,"")
 legend.SetTextColor(ROOT.kBlack)
