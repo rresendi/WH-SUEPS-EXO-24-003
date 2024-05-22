@@ -92,6 +92,18 @@ elif "T32.00" in sample_name:
 else:
     temp = "6.00"
 
+# Electron selection criteria
+electrons = ak.zip({
+        "pt": events.Electron.pt,
+        "eta": events.Electron.eta,
+        "phi": events.Electron.phi,
+        "mass": events.Electron.mass,
+        "charge": events.Electron.pdgId/(-11),
+        "pdgId": events.Electron.pdgId,
+        "isTight": events.Electron.mvaFall17V2Iso_WP80,
+        "isTightIso": events.Electron.mvaFall17V2Iso_WP80
+        }, with_name="Momentum4D")
+
 # Gets relevant events from file
 def Events(f):
     evs = f['Events'].arrays(['HLT_Ele32_WPTight_Gsf',
@@ -121,16 +133,6 @@ def isHLTMatched(self, events):
                                ((trigObj.filterBits & 2) |
                                 (trigObj.filterBits & 2048) |
                                 (trigObj.filterBits & 8192)))]
-    electrons = ak.zip({
-            "pt": events.Electron.pt,
-            "eta": events.Electron.eta,
-            "phi": events.Electron.phi,
-            "mass": events.Electron.mass,
-            "charge": events.Electron.pdgId/(-11),
-            "pdgId": events.Electron.pdgId,
-            "isTight": events.Electron.mvaFall17V2Iso_WP80,
-            "isTightIso": events.Electron.mvaFall17V2Iso_WP80
-          }, with_name="Momentum4D")
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian(electrons, trigObjSingleEl], axis=1, nested = True))
     alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
@@ -168,7 +170,7 @@ def ele_hists(events, etas, hists):
     eta_max = etas[1]
     
     # Electron selection
-    isHLTMatched(events)
+    ele_quality_check = isHLTMatched(events)
 
     # Trigger selection
     if "UL17" in sample_name or "UL18" in sample_name:
