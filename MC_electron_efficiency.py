@@ -107,7 +107,28 @@ def Events(f):
                 'Electron_dz',
                 ])
     return evs
-    
+# Gets matched online/offline electrons from file
+# quality requirements for electrons                                                                                                                              
+def isHLTMatched(self,events, leptons):
+    trigObj = ak.zip({
+            "pt": events.TrigObj.pt,
+            "eta": events.TrigObj.eta,
+            "phi": events.TrigObj.phi,
+            "mass": 0.,
+            "id": events.TrigObj.id,
+            "filterBits": events.TrigObj.filterBits
+        }, with_name="Momentum4D")
+        trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
+                               ((trigObj.filterBits & 2) |
+                                (trigObj.filterBits & 2048) |
+                                (trigObj.filterBits & 8192)))]
+
+    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([leptons[abs(leptons.pdgId) == 11], trigObjSingleEl], axis=1, nested = True))
+    alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
+    match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
+
+    return match1El
+
 # Defines binning and histograms
 ele_bin_edges=array('d',[0,2,4,6,8,10,12,
                          14,16,18,20,22,
@@ -136,7 +157,7 @@ def ele_hists(events, etas, hists):
     ele_filthist = hists[1]
     eta_min = etas[0]
     eta_max = etas[1]
-
+    # E
     # Trigger selection
     if "UL17" in sample_name or "UL18" in sample_name:
         triggerSingleElectron = (
@@ -150,28 +171,7 @@ def ele_hists(events, etas, hists):
             events["HLT_Ele115_CaloIdVT_GsfTrkIdT"] |
             events["HLT_Photon175"]
         )
-        # quality requirements for electrons                                                                                                                              
-    def isHLTMatched(self,events, leptons):
-        trigObj = ak.zip({
-            "pt": events.TrigObj.pt,
-            "eta": events.TrigObj.eta,
-            "phi": events.TrigObj.phi,
-            "mass": 0.,
-            "id": events.TrigObj.id,
-            "filterBits": events.TrigObj.filterBits
-        }, with_name="Momentum4D")
-        trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
-                               ((trigObj.filterBits & 2) |
-                                (trigObj.filterBits & 2048) |
-                                (trigObj.filterBits & 8192)))]
-
-    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([leptons[abs(leptons.pdgId) == 11], trigObjSingleEl], axis=1, nested = True))
-    alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
-    match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
-
-    return match1El
-    ele_quality_check = match1El
-    
+        
     # cut on eta
     eta_split = (
         (np.abs(events["Electron_eta"]) >= eta_min)
