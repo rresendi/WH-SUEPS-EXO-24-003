@@ -23,6 +23,7 @@ output_file = "MC_electron_efficiencies.root"
 input_file= "/eos/user/j/jreicher/SUEP/WH_private_signals/merged/"+sample_name + ".root"
 
 # suep decay type
+
 if "generic" in sample_name:
     decay_type = "generic"
 elif "hadronic" in sample_name:
@@ -30,8 +31,7 @@ elif "hadronic" in sample_name:
 else:
     decay_type = "leptonic"
 
-
-    # conditions for what year
+# conditions for what year
 
 if "UL18" in sample_name:
     year = "2018 conditions"
@@ -46,7 +46,6 @@ else:
     year = "2016 conditions"
     folder = "ele_eff_outputs_2016/"
 
-    
 # dark meson (phi) mass
 
 if "MD2.00" in sample_name:
@@ -61,7 +60,7 @@ elif "MD1.00" in sample_name:
     md = "1.00 [GeV]"
 else:
     md = "1.40 [GeV]"
-    
+
 # temperature
     
 if "T0.25" in sample_name:
@@ -92,8 +91,9 @@ elif "T32.00" in sample_name:
     temp = "32.00"
 else:
     temp = "6.00"
-    
+
 # Gets relevant variables from file
+
 def Events(f):
     evs = f['Events'].arrays(['HLT_Ele32_WPTight_Gsf',
                 'HLT_Ele115_CaloIdVT_GsfTrkIdT',
@@ -107,9 +107,9 @@ def Events(f):
                 'Electron_dz',
                 ])
     return evs
-# Gets matched online/offline electrons from file
-# quality requirements for electrons                                                                                                                              
-def isHLTMatched(self,events, leptons):
+    
+# Gets matched online/offline electrons from file                                                                                                                              
+def isHLTMatched(self, events, leptons):
     trigObj = ak.zip({
             "pt": events.TrigObj.pt,
             "eta": events.TrigObj.eta,
@@ -157,7 +157,9 @@ def ele_hists(events, etas, hists):
     ele_filthist = hists[1]
     eta_min = etas[0]
     eta_max = etas[1]
-    # E
+    
+    # Electron selection
+    
     # Trigger selection
     if "UL17" in sample_name or "UL18" in sample_name:
         triggerSingleElectron = (
@@ -172,7 +174,7 @@ def ele_hists(events, etas, hists):
             events["HLT_Photon175"]
         )
         
-    # cut on eta
+    # Cut on eta
     eta_split = (
         (np.abs(events["Electron_eta"]) >= eta_min)
         & (np.abs(events["Electron_eta"]) < eta_max)
