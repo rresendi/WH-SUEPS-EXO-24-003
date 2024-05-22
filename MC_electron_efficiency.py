@@ -92,8 +92,7 @@ elif "T32.00" in sample_name:
 else:
     temp = "6.00"
 
-# Gets relevant variables from file
-
+# Gets relevant events from file
 def Events(f):
     evs = f['Events'].arrays(['HLT_Ele32_WPTight_Gsf',
                 'HLT_Ele115_CaloIdVT_GsfTrkIdT',
