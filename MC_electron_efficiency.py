@@ -92,7 +92,7 @@ elif "T32.00" in sample_name:
 else:
     temp = "6.00"
 
-# Electron selection criteria
+# Defining a good electron
 electrons = ak.zip({
         "pt": events.Electron.pt,
         "eta": events.Electron.eta,
