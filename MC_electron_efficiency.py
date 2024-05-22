@@ -168,7 +168,8 @@ def ele_hists(events, etas, hists):
     eta_max = etas[1]
     
     # Electron selection
-    
+    isHLTMatched(events)
+
     # Trigger selection
     if "UL17" in sample_name or "UL18" in sample_name:
         triggerSingleElectron = (
