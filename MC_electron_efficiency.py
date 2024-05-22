@@ -119,6 +119,7 @@ with uproot.open(input_file) as f:
     evs = Events(f)
 
 # Defining a good electron
+
 electrons = ak.zip({
         "pt": evs["Electron_pt"],
         "eta": evs["Electron_eta"],
@@ -130,7 +131,16 @@ electrons = ak.zip({
         "isTightIso": evs["Electron_mvaFall17V2Iso_WP80"]
         }, with_name = "Momentum4D")   
 
-# Gets matched online/offline electrons from file                                                                                                                              
+# Computes deltaR2
+def deltaR2(eta1, phi1, eta2, phi2):
+    deta = eta1 - eta2
+    dphi = phi1 - phi2
+    dphi = np.mod(dphi + np.pi, 2*np.pi) - np.pi
+
+    return deta**2 + dphi**2
+
+# Gets matched online/offline electrons from file
+
 def isHLTMatched(self, events):
     trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
@@ -149,10 +159,16 @@ def isHLTMatched(self, events):
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons], trigObjSingleEl, axis=1, nested = True))
     alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
-
+    
+    print("trigObjSingleEl:", trigObjSingleEl)
+    print("toMatch1El:", toMatch1El)
+    print("alldr2:", alldr2)
+    print("match1El:", match1El)
+    
     return match1El
 
 # Defines binning and histograms
+
 ele_bin_edges = array('d',[0,2,4,6,8,10,12,
                          14,16,18,20,22,
                          24,26,28,30,32,
@@ -161,10 +177,12 @@ ele_bin_edges = array('d',[0,2,4,6,8,10,12,
                          120,140,160,180,200])
 
 # Histograms for overall efficiency
+
 ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
 ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
 
 # Split into three regions of eta
+
 eta1_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
 eta1_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
 eta2_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
@@ -175,6 +193,7 @@ eta4_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-
 eta4_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
 
 # Function for filling the histograms
+
 def ele_hists(events, etas, hists):
     ele_totalhist = hists[0]
     ele_filthist = hists[1]
@@ -182,9 +201,12 @@ def ele_hists(events, etas, hists):
     eta_max = etas[1]
     
     # Electron selection
+    
     ele_quality_check = isHLTMatched(events)
-
+    print("ele_quality_check:", ele_quality_check)
+    
     # Trigger selection
+    
     if "UL17" in sample_name or "UL18" in sample_name:
         triggerSingleElectron = (
             events["HLT_Ele32_WPTight_Gsf"] |
@@ -199,17 +221,20 @@ def ele_hists(events, etas, hists):
         )
         
     # Cut on eta
+    
     eta_split = (
         (np.abs(events["Electron_eta"]) >= eta_min)
         & (np.abs(events["Electron_eta"]) < eta_max)
     )
 
     # Select based on trigger
+    
     ele = events["Electron_pt"]
     evs = ele[ele_quality_check & eta_split]
     tr_evs = evs[triggerSingleElectron]
 
     # Fill histograms
+    
     for ev in evs:
         for entry in ev:
             ele_totalhist.Fill(entry)
@@ -246,7 +271,6 @@ ele_eff.Divide(ele_totalhist)
 
 ele_eff.Sumw2()
 ele_eff.Divide(ele_totalhist)
-    
 
 # Creates Efficiency Plot w legend
 
@@ -281,7 +305,6 @@ c1.SaveAs(folder + sample_name + "_Efficiency.pdf")
 
 # Saves overall efficiency
 
-
 root_file = ROOT.TFile(output_file,"UPDATE")
 root_file.cd()
 
@@ -293,14 +316,11 @@ ele_eff.Write()
 
 root_file.Close()
     
-
 try:
     root_file = uproot.update(output_file)
     root_file[sample_name] = ele_eff
 except (OSError, IOError) as e:
     root_file = uproot.create(output_file)
     root_file[sample_name] = ele_eff
-
-
 
 print("sample " + sample_name + " complete")
