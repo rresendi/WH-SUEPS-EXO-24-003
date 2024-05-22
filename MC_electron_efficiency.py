@@ -108,7 +108,7 @@ def Events(f):
     return evs
     
 # Gets matched online/offline electrons from file                                                                                                                              
-def isHLTMatched(self, events, leptons):
+def isHLTMatched(self, events):
     trigObj = ak.zip({
             "pt": events.TrigObj.pt,
             "eta": events.TrigObj.eta,
