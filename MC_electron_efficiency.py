@@ -122,8 +122,18 @@ def isHLTMatched(self, events, leptons):
                                ((trigObj.filterBits & 2) |
                                 (trigObj.filterBits & 2048) |
                                 (trigObj.filterBits & 8192)))]
+    electrons = ak.zip({
+            "pt": events.Electron.pt,
+            "eta": events.Electron.eta,
+            "phi": events.Electron.phi,
+            "mass": events.Electron.mass,
+            "charge": events.Electron.pdgId/(-11),
+            "pdgId": events.Electron.pdgId,
+            "isTight": events.Electron.mvaFall17V2Iso_WP80,
+            "isTightIso": events.Electron.mvaFall17V2Iso_WP80
+          }, with_name="Momentum4D")
 
-    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([leptons[abs(leptons.pdgId) == 11], trigObjSingleEl], axis=1, nested = True))
+    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian(electrons, trigObjSingleEl], axis=1, nested = True))
     alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
 
