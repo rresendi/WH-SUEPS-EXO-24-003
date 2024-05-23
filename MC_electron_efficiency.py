@@ -159,12 +159,6 @@ def isHLTMatched(self, events):
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons], trigObjSingleEl, axis=1, nested = True))
     alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
-    
-    print("trigObjSingleEl:", trigObjSingleEl)
-    print("toMatch1El:", toMatch1El)
-    print("alldr2:", alldr2)
-    print("match1El:", match1El)
-    
     return match1El
 
 # Defines binning and histograms
@@ -203,7 +197,6 @@ def ele_hists(events, etas, hists):
     # Electron selection
     
     ele_quality_check = isHLTMatched(events)
-    print("ele_quality_check:", ele_quality_check)
     
     # Trigger selection
     
