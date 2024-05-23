@@ -156,7 +156,7 @@ def isHLTMatched(self, events):
                                 (events['trigObj_filterBits'] & 2048) |
                                 (events['trigObj_filterBits'] & 8192)))]
 
-    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons], trigObjSingleEl, axis=1, nested = True))
+    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons, trigObjSingleEl], axis=1, nested = True))
     alldr2                      = toMatch1El.deltaR2(trigObjSingleEl)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
     return match1El
