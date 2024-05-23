@@ -287,7 +287,7 @@ eta2_effs.SetLineColor(ROOT.kRed)
 eta2_effs.Draw("same")
 eta3_effs.SetLineColor(ROOT.kBlue)
 eta3_effs.Draw("same")
-eta4_effs.SetLineColor(ROOT.kGreen)
+eta4_effs.SetLineColor(ROOT.kGreen+1)
 eta4_effs.Draw("same")
 legend.Draw("same")
 c1.Update()
@@ -308,12 +308,5 @@ eff_dir.cd()
 ele_eff.Write()
 
 root_file.Close()
-    
-try:
-    root_file = uproot.update(output_file)
-    root_file[sample_name] = ele_eff
-except (OSError, IOError) as e:
-    root_file = uproot.create(output_file)
-    root_file[sample_name] = ele_eff
 
 print("sample " + sample_name + " complete")
