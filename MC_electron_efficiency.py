@@ -152,8 +152,7 @@ def isHLTMatched(events):
         }, with_name = "Momentum4D")
 
     trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
-                               ((events['TrigObj_filterBits'] & 1) |
-                                (events['TrigObj_filterBits'] & 2) |
+                               ((events['TrigObj_filterBits'] & 2) |
                                 (events['TrigObj_filterBits'] & 2048) |
                                 (events['TrigObj_filterBits'] & 8192)))]
 
