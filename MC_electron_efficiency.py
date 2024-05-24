@@ -141,7 +141,7 @@ def deltaR2(eta1, phi1, eta2, phi2):
 
 # Gets matched online/offline electrons from file                                                                                                                                                          
 
-def isHLTMatched(events):
+def isHLTMatched(events, electrons):
     trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
             "eta": events["TrigObj_eta"],
@@ -159,12 +159,7 @@ def isHLTMatched(events):
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
-
-    print("trigObjSingleEl:", trigObjSingleEl)
-    print("toMatch1El:", toMatch1El)
-    print("alldr2:", alldr2)
-    print("match1El:", match1El)
-
+    
     return match1El
 
 # Defines binning and histograms                                                                                                                                                                           
@@ -202,8 +197,7 @@ def ele_hists(events, etas, hists):
 
     # Electron selection                                                                                                                                                                                   
 
-    ele_quality_check = isHLTMatched(events)
-    print("ele_quality_check:", ele_quality_check)
+    ele_quality_check = isHLTMatched(events, electrons)
 
     # Trigger selection                                                                                                                                                                                    
 
