@@ -201,7 +201,7 @@ def ele_hists(events, etas, deltaR_hists):
                                 (events['TrigObj_filterBits'] & 2048) |
                                 (events['TrigObj_filterBits'] & 8192)))]
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons, trigObjSingleEl], axis=1, nested=True))
-    alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
+    alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)    
     deltaR_values = ak.min(alldr2, axis=2)
     for deltaR in deltaR_values[ele_quality_check & eta_split]:
         for value in deltaR:
@@ -213,9 +213,9 @@ for (eta_min, eta_max, hist) in eta_hists:
     ele_hists(evs, (eta_min, eta_max), hist)
 
 # Create histogram with plot legend
-c1 = ROOT.TCanvas("c1", "Filtered Events by Eta Region", 800, 600)
-c1.SetTitle("Filtered Electron Events by Eta Region")
-legend = ROOT.TLegend(0.5, 0.7, 0.9, 0.9)
+c1 = ROOT.TCanvas ("canvas","",800,600)
+eta1_deltaR_hist.SetTitle("Filtered Electron Events by Eta Region")
+legend = ROOT.TLegend(0.5,0.1,0.9,0.4)
 legend.AddEntry(eta1_deltaR_hist, "|eta| < 1", "l")
 legend.AddEntry(eta2_deltaR_hist, "1 <= |eta| < 2", "l")
 legend.AddEntry(eta3_deltaR_hist, "2 <= |eta| < 2.5", "l")
