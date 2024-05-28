@@ -238,9 +238,10 @@ def ele_hists(events, etas, hists):
 
     return 0
 
-eta_split = [[0, 2.5], [0, 1.0], [1.0, 2.0], [2.0, 3.0]]
-eta_hists = [[ele_totalhist,ele_filthist],[eta1_ele_totalhist,eta1_ele_filthist],
-             [eta2_ele_totalhist,eta2_ele_filthist],[eta3_ele_totalhist,eta3_ele_filthist]]
+eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 3.0]]
+eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
+             [eta2_ele_totalhist,eta2_ele_filthist],
+             [eta3_ele_totalhist,eta3_ele_filthist]]
 
 for (etas,hists) in zip(eta_split, eta_hists):
     ele_hists(evs, etas, hists)
