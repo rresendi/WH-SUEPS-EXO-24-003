@@ -238,10 +238,9 @@ def ele_hists(events, etas, hists):
 
     return 0
 
-eta_split = [[0, 2.5],[0.0, 0.7], [0.7,1.444], [1.566,2], [2, 2.5]]
+eta_split = [[0, 2.5], [0, 1.0], [1.0, 2.0], [2.0, 3.0]]
 eta_hists = [[ele_totalhist,ele_filthist],[eta1_ele_totalhist,eta1_ele_filthist],
-             [eta2_ele_totalhist,eta2_ele_filthist],[eta3_ele_totalhist,eta3_ele_filthist],
-             [eta4_ele_totalhist,eta4_ele_filthist]]
+             [eta2_ele_totalhist,eta2_ele_filthist],[eta3_ele_totalhist,eta3_ele_filthist]]
 
 for (etas,hists) in zip(eta_split, eta_hists):
     ele_hists(evs, etas, hists)
@@ -251,7 +250,6 @@ for (etas,hists) in zip(eta_split, eta_hists):
 eta1_effs = ROOT.TEfficiency(eta1_ele_filthist,eta1_ele_totalhist)
 eta2_effs = ROOT.TEfficiency(eta2_ele_filthist,eta2_ele_totalhist)
 eta3_effs = ROOT.TEfficiency(eta3_ele_filthist,eta3_ele_totalhist)
-eta4_effs = ROOT.TEfficiency(eta4_ele_filthist,eta4_ele_totalhist)
 c1 = ROOT.TCanvas ("canvas","",800,600)
 
 # Get overall Efficiency:                                                                                                                                                                                  
@@ -266,10 +264,9 @@ ele_eff.Divide(ele_totalhist)
 
 eta1_effs.SetTitle("Electron Trigger Efficiency in bins of pT;Electron pT [GeV];Efficiency")
 legend = ROOT.TLegend(0.5,0.1,0.9,0.4)
-legend.AddEntry(eta1_effs, "|#eta|<0.7", "l")
-legend.AddEntry(eta2_effs, "0.7<|#eta|<1.444", "l")
-legend.AddEntry(eta3_effs, "1.566<|#eta|<2", "l")
-legend.AddEntry(eta4_effs, "2<|#eta|<2.5", "l")
+legend.AddEntry(eta1_effs, "|#eta|<1.0", "l")
+legend.AddEntry(eta2_effs, "1.0<|#eta|<2.0", "l")
+legend.AddEntry(eta3_effs, "2.0<|#eta|<3.0", "l")
 legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
 legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
 legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
@@ -284,8 +281,6 @@ eta2_effs.SetLineColor(ROOT.kRed)
 eta2_effs.Draw("same")
 eta3_effs.SetLineColor(ROOT.kBlue)
 eta3_effs.Draw("same")
-eta4_effs.SetLineColor(ROOT.kGreen+1)
-eta4_effs.Draw("same")
 legend.Draw("same")
 c1.Update()
 
