@@ -130,6 +130,18 @@ electrons = ak.zip({
         "isTightIso": evs["Electron_mvaFall17V2Iso_WP80"]
         }, with_name = "Momentum4D")
 
+cutElectrons = (
+        (evs["Electron_cutBased"] >= 2)
+        & (evs["Electron_pt"] >= 15)
+        & (evs["Electron_mvaFall17V2Iso_WP80"])
+        & (abs(evs["Electron_dxy"]) < 0.05 + 0.05 * (abs(evs["Electron_eta"]) > 1.479))
+        & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
+        & ((abs(evs["Electron_eta"]) < 1.444) | (abs(evs["Electron_eta"]) > 1.566))
+        & (abs(evs["Electron_eta"]) < 2.5)
+    )
+
+goodElectrons = electrons[cutElectrons]
+
 # Computes deltaR2                                                                                                                                                                                         
 
 def deltaR2(eta1, phi1, eta2, phi2):
@@ -141,7 +153,7 @@ def deltaR2(eta1, phi1, eta2, phi2):
 
 # Gets matched online/offline electrons from file                                                                                                                                                          
 
-def isHLTMatched(events, electrons):
+def isHLTMatched(events, goodElectrons):
     trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
             "eta": events["TrigObj_eta"],
@@ -156,7 +168,7 @@ def isHLTMatched(events, electrons):
                                 (events['TrigObj_filterBits'] & 2048) |
                                 (events['TrigObj_filterBits'] & 8192)))]
 
-    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([electrons, trigObjSingleEl], axis=1, nested = True))
+    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
     
@@ -197,7 +209,7 @@ def ele_hists(events, etas, hists):
 
     # Electron selection                                                                                                                                                                                   
 
-    ele_quality_check = isHLTMatched(events, electrons)
+    ele_quality_check = isHLTMatched(events, goodElectrons)
 
     # Trigger selection                                                                                                                                                                                    
 
