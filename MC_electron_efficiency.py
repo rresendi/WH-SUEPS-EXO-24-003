@@ -153,7 +153,7 @@ def deltaR2(eta1, phi1, eta2, phi2):
 
 # Gets matched online/offline electrons from file                                                                                                                                                          
 
-def isHLTMatched(events, goodElectrons):
+def isHLTMatched(events, electrons):
     trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
             "eta": events["TrigObj_eta"],
@@ -163,15 +163,31 @@ def isHLTMatched(events, goodElectrons):
             "filterBits": events['TrigObj_filterBits']
         }, with_name = "Momentum4D")
 
-    trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
-                               ((events['TrigObj_filterBits'] & 2) |
-                                (events['TrigObj_filterBits'] & 2048) |
-                                (events['TrigObj_filterBits'] & 8192)))]
+    # Defining the conditions for filtering each trigger                                                                                                                                                   
+    trigbits1 = (events['TrigObj_filterBits'] & 2)
+    filterbits1 = trigbits1[trigbits1 & (events["TrigObj_pt"] >= 32)]
 
+    trigbits2 = (events['TrigObj_filterBits'] & 2048)
+    filterbits2 = trigbits2[trigbits2 & (events["TrigObj_pt"] >= 115)]
+
+    trigbits3 = (events['TrigObj_filterBits'] & 8192)
+    
+    if "UL17" in sample_name or "UL18" in sample_name:
+        filterbits3 = trigbits3[trigbits3 & (events["TrigObj_pt"] >= 200)]
+
+    else:
+        filterbits3 = trigbits3[trigbits3 & (events["TrigObj_pt"] >= 175)]
+        
+    trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
+                               (filterbits1 |
+                                filterbits2 |
+                                filterbits3))]
+
+    # Matching online and offline                                                                                                                                                                          
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
-    
+
     return match1El
 
 # Defines binning and histograms                                                                                                                                                                           
