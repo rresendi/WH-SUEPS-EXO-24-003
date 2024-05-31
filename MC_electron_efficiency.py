@@ -132,7 +132,7 @@ electrons = ak.zip({
 
 cutElectrons = (
         (evs["Electron_cutBased"] >= 2)
-        & (evs["Electron_pt"] >= 15)
+        & (evs["Electron_pt"] >= 35)
         & (evs["Electron_mvaFall17V2Iso_WP80"])
         & (abs(evs["Electron_dxy"]) < 0.05 + 0.05 * (abs(evs["Electron_eta"]) > 1.479))
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
