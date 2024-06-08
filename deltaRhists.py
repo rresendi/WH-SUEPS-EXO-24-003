@@ -109,8 +109,7 @@ def Events(f):
 with uproot.open(input_file) as f:
     evs = Events(f)
 
-# Defining a good electron                                                                                                                                                                                \
-                                                                                                                                                                                                           
+# Defining a good electron                                                                                                                                                                                \                                                                                                                                                                                       
 
 electrons = ak.zip({
         "pt": evs["Electron_pt"],
@@ -135,15 +134,22 @@ cutElectrons = (
 
 goodElectrons = electrons[cutElectrons]
 
-# Computes deltaR2                                                                                                                                                                                         
+# Computes deltaR2
 def deltaR2(eta1, phi1, eta2, phi2):
     deta = eta1 - eta2
     dphi = np.arccos(np.cos(phi1 - phi2))
 
     return deta ** 2 + dphi ** 2
 
-# Gets matched online/offline electrons from file                                                                                                                                                          
+# Setting up alldr2 to be usable
+
+alldr2 = None
+
+# Gets matched online/offline electrons from file
 def isHLTMatched(events, electrons):
+    
+    global alldr2
+    
     trigObj = ak.zip({
         "pt": events["TrigObj_pt"],
         "eta": events["TrigObj_eta"],
@@ -153,18 +159,25 @@ def isHLTMatched(events, electrons):
         "filterBits": events['TrigObj_filterBits']
         }, with_name="Momentum4D")
 
-    trigObjSingleEl = trigObj[((abs(trigObj.id) == 11) &
-                               ((events['TrigObj_filterBits'] & 2) |
-                                (events['TrigObj_filterBits'] & 2048) |
-                                (events['TrigObj_filterBits'] & 8192)))]
-
+    filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2)
+    filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048)
+    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192)
+    
+    trigObjSingleEl = trigObj[((abs(trigObj.id) == 11)
+                               & (trigObj.pt >= 35)
+                               & ((abs(trigObj.eta) < 1.444) | (abs(trigObj.eta) > 1.566))
+                               & (abs(trigObj.eta) < 2.5)
+                               & (filterbits1 |
+                                filterbits2 |
+                                filterbits3))]
+    
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested=True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     match1El = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis=1) >= 1)
 
     return match1El
 
-# Defines binning and histograms                                                                                                                                                                           
+# Defines binning and histograms
 ele_bin_edges = array('d', [0, 2, 4, 6, 8, 10, 12,
                             14, 16, 18, 20, 22,
                             24, 26, 28, 30, 32,
@@ -173,13 +186,14 @@ ele_bin_edges = array('d', [0, 2, 4, 6, 8, 10, 12,
                             120, 140, 160, 180, 200])
 
 # Create a 2D histogram for deltaR vs. pT for each eta bin                                                                                                                                                 
-deltaR_vs_pt_eta1 = ROOT.TH2F("deltaR_vs_pt_eta1", "DeltaR vs pT (|eta| < 1)", 30, 0, 200, 100, 0, 0.5)
-deltaR_vs_pt_eta2 = ROOT.TH2F("deltaR_vs_pt_eta2", "DeltaR vs pT (1 <= |eta| < 2)", 30, 0, 200, 100, 0, 0.5)
-deltaR_vs_pt_eta3 = ROOT.TH2F("deltaR_vs_pt_eta3", "DeltaR vs pT (2 <= |eta| < 2.5)", 30, 0, 200, 100, 0, 0.5)
+deltaR_vs_pt_eta1 = ROOT.TH1D("deltaR_vs_pt_eta1", "DeltaR vs pT (|eta| < 1)",len(ele_bin_edges)-1,ele_bin_edges)
+deltaR_vs_pt_eta2 = ROOT.TH1D("deltaR_vs_pt_eta2", "DeltaR vs pT (1 <= |eta| < 2)",len(ele_bin_edges)-1,ele_bin_edges)
+deltaR_vs_pt_eta3 = ROOT.TH1D("deltaR_vs_pt_eta3", "DeltaR vs pT (2 <= |eta| < 2.5)",len(ele_bin_edges)-1,ele_bin_edges)
 
 # Function for filling the deltaR histograms and 2D histograms                                                                                                                                             
-def ele_hists(events, etas, deltaR_vs_pt_hist):
-    eta_min, eta_max = etas
+def ele_hists(events, etas, hists):
+    eta_min = etas[0]
+    eta_max = etas[1]
 
     # Electron selection                                                                                                                                                                                   
     ele_quality_check = isHLTMatched(events, goodElectrons)
@@ -205,8 +219,8 @@ def ele_hists(events, etas, deltaR_vs_pt_hist):
         (np.abs(events["Electron_eta"]) < eta_max)
     )
     
-
-    # Compute deltaR and fill 2D histograms                                                                                                                                                                
+    
+    # Compute deltaR and fill 2D histograms, basically i need to extraoplate alldr2 and plot that                                                                                                                                                              
     trigObj = ak.zip({
         "eta": events["TrigObj_eta"],
         "phi": events['TrigObj_phi']
@@ -229,31 +243,57 @@ def ele_hists(events, etas, deltaR_vs_pt_hist):
             deltaR_vs_pt_hist.Fill(pt_val, value)
 
 # Fill 2D histograms                                                                                                                                                                                       
-eta_bins = [(0, 1, deltaR_vs_pt_eta1), (1, 2, deltaR_vs_pt_eta2), (2, 2.5, deltaR_vs_pt_eta3)]
-for (eta_min, eta_max, deltaR_vs_pt_hist) in eta_bins:
-    ele_hists(evs, (eta_min, eta_max), deltaR_vs_pt_hist)
+eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 3.0]]
+eta_hists = [[deltaR_vs_pt_eta1],
+             [deltaR_vs_pt_eta2],
+             [deltaR_vs_pt_eta3]]
+
+
+for (etas, hists) in zip(eta_split, eta_hists):
+    ele_hists(evs, etas, hists)
 
 # Create canvas for plotting                                                                                                                                                                               
 c1 = ROOT.TCanvas("canvas", "", 800, 600)
-c1.SetRightMargin(0.15)  # Adjust right margin to accommodate legend                                                                                                                                       
 
-# Draw the first 2D histogram                                                                                                                                                                              
-deltaR_vs_pt_eta1.Draw("COLZ")
-deltaR_vs_pt_eta1.GetXaxis().SetTitle("pT [GeV]")
-deltaR_vs_pt_eta1.GetYaxis().SetTitle("DeltaR")
+# Creates deltaR Plot w legend                                                                                                                                                                         
+
+eta1_effs.SetTitle("deltaR values of cut events in bins of pT;Electron pT [GeV];deltaR")
+legend = ROOT.TLegend(0.5,0.1,0.9,0.4)
+legend.AddEntry(deltaR_vs_pt_eta1, "|#eta|<1.0", "l")
+legend.AddEntry(deltaR_vs_pt_eta2, "1.0<|#eta|<2.0", "l")
+legend.AddEntry(deltaR_vs_pt_eta3, "2.0<|#eta|<3.0", "l")
+legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
+legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
+legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
+legend.SetTextColor(ROOT.kBlack)
+legend.SetTextFont(42)
+legend.SetTextSize(0.03)
+
+# Draw plot                                                                                                                                                                                                
+
+eta1_effs.Draw()
+eta2_effs.SetLineColor(ROOT.kRed)
+eta2_effs.Draw("same")
+eta3_effs.SetLineColor(ROOT.kBlue)
+eta3_effs.Draw("same")
+legend.Draw("same")
 c1.Update()
 
-# Draw subsequent histograms on top of the first one                                                                                                                                                       
-deltaR_vs_pt_eta2.Draw("COLZ SAME")
-deltaR_vs_pt_eta3.Draw("COLZ SAME")
+# Saves to pdf                                                                                                                                                                                             
 
-# Add a legend                                                                                                                                                                                             
-legend = ROOT.TLegend(0.7, 0.15, 0.85, 0.4)
-legend.AddEntry(deltaR_vs_pt_eta1, "|eta| < 1", "l")
-legend.AddEntry(deltaR_vs_pt_eta2, "1 <= |eta| < 2", "l")
-legend.AddEntry(deltaR_vs_pt_eta3, "2 <= |eta| < 2.5", "l")
-legend.SetTextSize(0.03)
-legend.Draw()
+c1.SaveAs(folder + sample_name + "_deltaR.pdf")
 
-# Save the plot                                                                                                                                                                                            
-c1.SaveAs(folder + sample_name + "_DeltaR_vs_pT_by_Eta.pdf")
+# Saves overall efficiency
+
+root_file = ROOT.TFile(output_file, "UPDATE")
+root_file.cd()
+
+eff_dir = root_file.Get("Efficiencies")
+if not eff_dir:
+    eff_dir = root_file.mkdir("Efficiencies")
+eff_dir.cd()
+ele_eff.Write()
+
+root_file.Close()
+
+print("sample " + sample_name + " complete")
