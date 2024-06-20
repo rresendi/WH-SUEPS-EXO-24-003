@@ -184,13 +184,9 @@ def isHLTMatched(events, goodElectrons):
     return match1El
     
 # Defines binning and histograms                                                                                                                                                                           
-
-ele_bin_edges = array('d',[0,2,4,6,8,10,12,
-                         14,16,18,20,22,
-                         24,26,28,30,32,
-                         34,36,38,40,50,
-                         60,70,80,90,100,
-                         120,140,160,180,200])
+pt_min = np.min(goodElectrons.pt)
+pt_max = np.max(goodElectrons.pt)
+ele_bin_edges = array('d',[pt_min, pt_max, 50])
 
 # Histograms for overall efficiency                                                                                                                                                                        
 
