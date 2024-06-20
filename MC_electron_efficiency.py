@@ -132,7 +132,6 @@ electrons = ak.zip({
 
 cutElectrons = (
         (evs["Electron_cutBased"] >= 2)
-        & (evs["Electron_pt"] >= 35)
         & (evs["Electron_mvaFall17V2Iso_WP80"])
         & (abs(evs["Electron_dxy"]) < 0.05 + 0.05 * (abs(evs["Electron_eta"]) > 1.479))
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
@@ -179,14 +178,17 @@ def isHLTMatched(events, goodElectrons):
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
-    match1El                    = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1)
+    match1El                    = ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1
     
     return match1El
     
 # Defines binning and histograms                                                                                                                                                                           
-pt_min = np.min(goodElectrons.pt)
-pt_max = np.max(goodElectrons.pt)
-ele_bin_edges = array('d',[pt_min, pt_max, 50])
+ele_bin_edges = array('d', [0, 2, 4, 6, 8, 10, 12,
+                            14, 16, 18, 20, 22,
+                            24, 26, 28, 30, 32,
+                            34, 36, 38, 40, 50,
+                            60, 70, 80, 90, 100,
+                            120, 140, 160, 180, 200])
 
 # Histograms for overall efficiency                                                                                                                                                                        
 
@@ -195,14 +197,12 @@ ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,el
 
 # Split into three regions of eta                                                                                                                                                                          
 
-eta1_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta1_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta2_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta2_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta3_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta3_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta4_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
-eta4_ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta1_ele_totalhist = ROOT.TH1D("total1_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta1_ele_filthist = ROOT.TH1D("filt1_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta2_ele_totalhist = ROOT.TH1D("total2_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta2_ele_filthist = ROOT.TH1D("filt2_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta3_ele_totalhist = ROOT.TH1D("total3_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
+eta3_ele_filthist = ROOT.TH1D("filt3_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
 
 # Function for filling the histograms                                                                                                                                                                      
 
@@ -241,8 +241,8 @@ def ele_hists(events, etas, hists):
     # Select based on trigger                                                                                                                                                                              
 
     ele = events["Electron_pt"]
-    evs = ele[ele_quality_check & eta_split]
-    tr_evs = evs[triggerSingleElectron]
+    evs = ele[eta_split]
+    tr_evs = evs[ele_quality_check & triggerSingleElectron]
 
     # Fill histograms                                                                                                                                                                                      
 
