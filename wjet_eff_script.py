@@ -58,7 +58,6 @@ def define_good_electrons(evs):
 
     cutElectrons = (
         (evs["Electron_cutBased"] >= 2)
-        & (evs["Electron_pt"] >= 35)
         & (evs["Electron_mvaFall17V2Iso_WP80"])
         & (abs(evs["Electron_dxy"]) < 0.05 + 0.05 * (abs(evs["Electron_eta"]) > 1.479))
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
@@ -72,7 +71,7 @@ def define_good_electrons(evs):
 def deltaR2(eta1, phi1, eta2, phi2):
     deta = eta1 - eta2
     dphi = phi1 - phi2
-    dphi = np.mod(dphi + np.pi, 2*np.pi) - np.pi
+    dphi = np.arccos(np.cos(dphi))
     return deta**2 + dphi**2
 
 # Gets matched online/offline electrons from file
@@ -101,7 +100,7 @@ def isHLTMatched(events, goodElectrons):
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested=True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
-    match1El = (ak.sum(ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis=1) >= 1)
+    match1El = ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis=1) >= 1
     
     return match1El
 
@@ -150,8 +149,8 @@ def ele_hists(events, etas, hists):
     )
 
     ele = events["Electron_pt"]
-    evs = ele[ele_quality_check & eta_split]
-    tr_evs = evs[triggerSingleElectron]
+    evs = ele[eta_split]
+    tr_evs = evs[ele_quality_check & triggerSingleElectron]
 
     # Fill histograms
     for ev in evs:
@@ -180,19 +179,13 @@ for filename in os.listdir(input_folder):
         goodElectrons = define_good_electrons(evs)
 
         for (etas, hists) in zip(eta_split, eta_hists):
-            ele_hists(evs, etas, hists)
+            (evs, etas, hists)
 
 # Fills efficiency
 eta1_effs = ROOT.TEfficiency(eta1_ele_filthist, eta1_ele_totalhist)
 eta2_effs = ROOT.TEfficiency(eta2_ele_filthist, eta2_ele_totalhist)
 eta3_effs = ROOT.TEfficiency(eta3_ele_filthist, eta3_ele_totalhist)
 c1 = ROOT.TCanvas("canvas", "", 800, 600)
-
-# Get overall Efficiency
-ele_eff = ele_filthist.Clone()
-ele_eff.SetName("Combined_Efficiency")
-ele_eff.Sumw2()
-ele_eff.Divide(ele_totalhist)
 
 # Creates Efficiency Plot w legend
 eta1_effs.SetTitle("Electron Trigger Efficiency in bins of pT;Electron pT [GeV];Efficiency")
