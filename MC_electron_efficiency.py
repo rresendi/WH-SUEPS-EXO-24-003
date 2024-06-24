@@ -141,15 +141,6 @@ cutElectrons = (
 
 goodElectrons = electrons[cutElectrons]
 
-# Computes deltaR2                                                                                                                                                                                         
-
-def deltaR2(eta1, phi1, eta2, phi2):
-    deta = eta1 - eta2
-    dphi = phi1 - phi2
-    dphi = np.mod(dphi + np.pi, 2*np.pi) - np.pi
-
-    return deta**2 + dphi**2
-
 # Gets matched online/offline electrons from file                                                                                                                                                          
 
 def isHLTMatched(events, goodElectrons):
@@ -177,9 +168,18 @@ def isHLTMatched(events, goodElectrons):
                                 filterbits3))]
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested = True))
-    alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
-    match1El                    = ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis = 1) >= 1
     
+    # Computes deltaR2                                                                                                                                                                                         
+
+    def deltaR2(eta1, phi1, eta2, phi2):
+        deta = eta1 - eta2
+        dphi = phi1 - phi2
+        dphi = np.mod(dphi + np.pi, 2*np.pi) - np.pi
+        return deta**2 + dphi**2
+    
+    alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
+    min_dr2 = ak.min(alldr2, axis=2)
+    match1El = ak.any(min_dr2 < 0.1, axis=1)    
     return match1El
     
 # Defines binning and histograms                                                                                                                                                                           
@@ -241,8 +241,8 @@ def ele_hists(events, etas, hists):
     # Select based on trigger                                                                                                                                                                              
 
     ele = events["Electron_pt"]
-    evs = ele[eta_split]
-    tr_evs = evs[ele_quality_check & triggerSingleElectron]
+    evs = ele[ele_quality_check & eta_split]
+    tr_evs = evs[triggerSingleElectron]
 
     # Fill histograms                                                                                                                                                                                      
 
