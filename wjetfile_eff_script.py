@@ -101,7 +101,8 @@ def isHLTMatched(events, goodElectrons):
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested=True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
-    match1El = ak.where(ak.min(alldr2, axis=2) < 0.1, True, False), axis=1) >= 1
+    min_dr2 = ak.min(alldr2, axis=2)
+    match1El = ak.any(min_dr2 < 0.1, axis=1)
     
     return match1El
 
