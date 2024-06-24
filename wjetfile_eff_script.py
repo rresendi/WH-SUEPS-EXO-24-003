@@ -12,13 +12,14 @@ ROOT.gROOT.SetBatch(True)
 # Initialize parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--input", help = "Name of input folder", type = str)
+parser.add_argument("--input", help = "Name of input file", type = str)
 args = vars(parser.parse_args())
 
-# Name of sample folder
-input_folder = args["input"]
+# Name of sample                                                                                                                                                                                           
+sample_name = args["input"]
 
 output_file = "MC_electron_efficiencies.root"
+input_file = "/eos/cms/store/user/cericeci/forRyleighAndBaily/WJets/" + sample_name + ".root"
 
 # Gets relevant events from file
 def Events(f):
@@ -162,30 +163,20 @@ def ele_hists(events, etas, hists):
 
     return 0
 
-eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 2.5]]
-eta_hists = [[eta1_ele_totalhist, eta1_ele_filthist],
-             [eta2_ele_totalhist, eta2_ele_filthist],
-             [eta3_ele_totalhist, eta3_ele_filthist]]
+eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 3.0]]
+eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
+             [eta2_ele_totalhist,eta2_ele_filthist],
+             [eta3_ele_totalhist,eta3_ele_filthist]]
 
-# Loop over files in the input folder
-for filename in os.listdir(input_folder):
-    if filename.endswith(".root"):
-        sample_name = os.path.splitext(filename)[0]
-        input_file = os.path.join(input_folder, filename)
-        
-        with uproot.open(input_file) as f:
-            evs = Events(f)
+for (etas,hists) in zip(eta_split, eta_hists):
+    ele_hists(evs, etas, hists)
 
-        goodElectrons = define_good_electrons(evs)
+# Fills efficiency                                                                                                                                                                                         
 
-        for (etas, hists) in zip(eta_split, eta_hists):
-            (evs, etas, hists)
-
-# Fills efficiency
-eta1_effs = ROOT.TEfficiency(eta1_ele_filthist, eta1_ele_totalhist)
-eta2_effs = ROOT.TEfficiency(eta2_ele_filthist, eta2_ele_totalhist)
-eta3_effs = ROOT.TEfficiency(eta3_ele_filthist, eta3_ele_totalhist)
-c1 = ROOT.TCanvas("canvas", "", 800, 600)
+eta1_effs = ROOT.TEfficiency(eta1_ele_filthist,eta1_ele_totalhist)
+eta2_effs = ROOT.TEfficiency(eta2_ele_filthist,eta2_ele_totalhist)
+eta3_effs = ROOT.TEfficiency(eta3_ele_filthist,eta3_ele_totalhist)
+c1 = ROOT.TCanvas ("canvas","",800,600)
 
 # Creates Efficiency Plot w legend
 eta1_effs.SetTitle("Electron Trigger Efficiency in bins of pT;Electron pT [GeV];Efficiency")
@@ -221,4 +212,4 @@ ele_eff.Write()
 
 root_file.Close()
 
-print("All samples processed and combined.")
+print("Jet sample " + sample_name + " complete")
