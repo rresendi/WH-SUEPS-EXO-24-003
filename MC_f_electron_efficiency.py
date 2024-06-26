@@ -6,20 +6,19 @@ import numpy as np
 import ROOT
 from array import array
 
-# Sets batch mode so no popup window                                                                                                                                                                       
+# Sets batch mode so no popup window
 ROOT.gROOT.SetBatch(True)
 
-# Initialize parser                                                                                                                                                                                        
+# Initialize parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--input", help = "Name of input file", type = str)
+parser.add_argument("--input", help = "Name of input folder", type = str)
 args = vars(parser.parse_args())
 
-# Name of sample                                                                                                                                                                                           
-sample_name = args["input"]
+# Name of input folder
+input_folder = args["input"]
 
 output_file = "MC_electron_efficiencies.root"
-input_file = "/eos/user/j/jreicher/SUEP/WH_private_signals/merged/" + sample_name + ".root"
 
 # Gets relevant events from file                                                                                                                                                                           
 
@@ -127,8 +126,20 @@ eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
              [eta2_ele_totalhist,eta2_ele_filthist],
              [eta3_ele_totalhist,eta3_ele_filthist]]
 
-for (etas,hists) in zip(eta_split, eta_hists):
-    ele_hists(evs, etas, hists)
+# Loop over files in the input folder
+for filename in os.listdir(input_folder):
+    if filename.endswith(".root"):
+        sample_name = os.path.splitext(filename)[0]
+        input_file = os.path.join(input_folder, filename)
+        
+
+        with uproot.open(input_file) as f:
+            evs = Events(f)
+        print(f"Processing file: {filename}")
+        goodElectrons = define_good_electrons(evs)
+
+        for (etas, hists) in zip(eta_split, eta_hists):
+            (evs, etas, hists)
 
 # Fills efficiency                                                                                                                                                                                         
 
