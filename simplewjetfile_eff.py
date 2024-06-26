@@ -83,7 +83,6 @@ def ele_hists(events,etas,hists):
     # quality requirements for electrons                                                                                                                                                                              
     ele_quality_check = (
             (events["Electron_cutBased"] >= 2)
-            & (events["Electron_pt"] >= 35)
             & (events["Electron_mvaFall17V2Iso_WP80"])
             & (abs(events["Electron_dxy"]) < 0.05 + 0.05 * (abs(events["Electron_eta"]) > 1.479))
             & (abs(events["Electron_dz"]) < 0.10 + 0.10 * (abs(events["Electron_eta"]) > 1.479))
