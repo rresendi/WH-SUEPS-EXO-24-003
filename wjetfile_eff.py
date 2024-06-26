@@ -184,7 +184,7 @@ eta1_effs.SetTitle("Electron Trigger Efficiency in bins of pT;Electron pT [GeV];
 legend = ROOT.TLegend(0.5, 0.1, 0.9, 0.4)
 legend.AddEntry(eta1_effs, "|#eta|<1.0", "l")
 legend.AddEntry(eta2_effs, "1.0<|#eta|<2.0", "l")
-legend.AddEntry(eta3_effs, "2.0<|#eta|<2.5", "l")
+legend.AddEntry(eta3_effs, "2.0<|#eta|<3.0", "l")
 legend.SetTextColor(ROOT.kBlack)
 legend.SetTextFont(42)
 legend.SetTextSize(0.03)
