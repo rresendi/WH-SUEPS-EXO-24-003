@@ -25,6 +25,75 @@ sample_name= args["input"]
 output_file = "MC_electron_efficiencies.root"
 input_file = "/eos/user/j/jreicher/SUEP/WH_private_signals/merged/" + sample_name + ".root"
 
+# suep decay type                                                                                                                                                                                          
+
+if "generic" in sample_name:
+    decay_type = "generic"
+elif "hadronic" in sample_name:
+    decay_type = "hadronic"
+else:
+    decay_type = "leptonic"
+
+# conditions for what year                                                                                                                                                                                 
+
+if "UL18" in sample_name:
+    year = "2018 conditions"
+    folder = "ele_eff_outputs_2018/"
+elif "UL17" in sample_name:
+    year = "2017 conditions"
+    folder = "ele_eff_outputs_2017/"
+elif "UL16APV" in sample_name:
+    folder = "ele_eff_outputs_2016APV/"
+else:
+    year = "2016 conditions"
+    folder = "ele_eff_outputs_2016/"
+
+# dark meson (phi) mass                                                                                                                                                                                    
+
+if "MD2.00" in sample_name:
+    md = "2.00 [GeV]"
+elif "MD4.00" in sample_name:
+    md = "4.00 [GeV]"
+elif "MD3.00" in sample_name:
+    md = "3.00 [GeV]"
+elif "MD8.00" in sample_name:
+    md = "8.00 [GeV]"
+elif "MD1.00" in sample_name:
+    md = "1.00 [GeV]"
+else:
+    md = "1.40 [GeV]"
+
+# temperature                                                                                                                                                                                              
+
+if "T0.25" in sample_name:
+    temp = "0.25"
+if "T0.35" in sample_name:
+    temp = "0.35"
+if "T0.50" in sample_name:
+    temp = "0.50"
+elif "T0.75" in sample_name:
+    temp = "0.75"
+elif "T1.00" in sample_name:
+    temp = "1.00"
+elif "T1.50" in sample_name:
+    temp = "1.50"
+elif "T2.00" in sample_name:
+    temp = "2.00"
+elif "T3.00" in sample_name:
+    temp = "3.00"
+elif "T4.00" in sample_name:
+    temp = "4.00"
+elif "T8.00" in sample_name:
+    temp = "8.00"
+elif "T12.00" in sample_name:
+    temp = "12.00"
+elif "T16.00" in sample_name:
+    temp = "16.00"
+elif "T32.00" in sample_name:
+    temp = "32.00"
+else:
+    temp = "6.00"
+    
 # Gets relevant variables from file                                                                                                                                                                                   
 def Events(f):
     evs = f['Events'].arrays(['HLT_Ele32_WPTight_Gsf',
@@ -139,17 +208,40 @@ legend.SetTextColor(ROOT.kBlack)
 legend.SetTextFont(42)
 legend.SetTextSize(0.03)
 
-# Draw plot                                                                                                                                                                                                           
+# Draw plot                                                                                                                                                                               
+eta1_effs.Draw("AP")
 
-eta1_effs.Draw()
-eta2_effs.SetLineColor(ROOT.kRed)
-eta2_effs.Draw("same")
-eta3_effs.SetLineColor(ROOT.kBlue)
-eta3_effs.Draw("same")
-legend.Draw("same")
+# Update canvas                                                                                                                                                                           
 c1.Update()
 
-# Saves to pdf                                                                                                                                                                                             
+# Get painted graph and set y-axis range                                                                                                                                                  
+efficiency = eta1_effs
+graph = efficiency.GetPaintedGraph()
+graph.SetMinimum(0)
+
+
+# Update canvas again                                                                                                                                                                     
+ROOT.gPad.Update()
+
+# Draw legend                                                                                                                                                                             
+legend.Draw()
+c1.Update()
+efficiency = eta1_effs
+efficiency.Draw()
+ROOT.gPad.Update()
+graph = efficiency.GetPaintedGraph()
+graph.SetMinimum(0)
+
+ROOT.gPad.Update()
+legend.Draw()
+c1.Update()
+eta2_effs.Draw("P same")
+eta2_effs.SetLineColor(ROOT.kRed)
+eta3_effs.Draw("P same")
+eta3_effs.SetLineColor(ROOT.kBlue)
+
+# Saves to pdf                                                                                                                                                                           \
+                                                                                                                                                                                          
 
 c1.SaveAs(sample_name + "_Efficiency.pdf")
 
