@@ -68,13 +68,6 @@ def define_good_electrons(evs):
 
     return electrons[cutElectrons]
 
-# Computes deltaR2
-def deltaR2(eta1, phi1, eta2, phi2):
-    deta = eta1 - eta2
-    dphi = phi1 - phi2
-    dphi = np.arccos(np.cos(dphi))
-    return deta**2 + dphi**2
-
 # Gets matched online/offline electrons from file
 def isHLTMatched(events, goodElectrons):
     trigObj = ak.zip({
@@ -100,6 +93,13 @@ def isHLTMatched(events, goodElectrons):
                                   filterbits3))]
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested=True))
+    
+    # Computes deltaR2
+    def deltaR2(eta1, phi1, eta2, phi2):
+        deta = eta1 - eta2
+        dphi = phi1 - phi2
+        dphi = np.arccos(np.cos(dphi))
+        return deta**2 + dphi**2
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     min_dr2 = ak.min(alldr2, axis=2)
     match1El = ak.any(min_dr2 < 0.1, axis=1)
