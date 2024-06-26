@@ -12,14 +12,13 @@ ROOT.gROOT.SetBatch(True)
 # Initialize parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--input", help = "Name of input file", type = str)
+parser.add_argument("--input", help = "Name of input folder", type = str)
 args = vars(parser.parse_args())
 
-# Name of sample                                                                                                                                                                                           
-sample_name = args["input"]
+# Name of input folder
+input_folder = args["input"]
 
 output_file = "MC_electron_efficiencies.root"
-input_file = "/eos/cms/store/user/cericeci/forRyleighAndBaily/WJets/" + sample_name + ".root"
 
 # Gets relevant events from file
 def Events(f):
