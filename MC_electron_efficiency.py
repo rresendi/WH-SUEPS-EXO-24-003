@@ -172,7 +172,7 @@ def isHLTMatched(events, goodElectrons):
     def deltaR2(eta1, phi1, eta2, phi2):
         deta = eta1 - eta2
         dphi = phi1 - phi2
-        dphi = np.mod(dphi + np.pi, 2*np.pi) - np.pi
+        dphi = np.arccos(np.cos(dphi))
 
         return deta**2 + dphi**2
     
