@@ -197,14 +197,23 @@ legend.SetTextColor(ROOT.kBlack)
 legend.SetTextFont(42)
 legend.SetTextSize(0.03)
 
-# Draw plot
-eta1_effs.Draw()
-eta2_effs.SetLineColor(ROOT.kRed)
-eta2_effs.Draw("same")
-eta3_effs.SetLineColor(ROOT.kBlue)
-eta3_effs.Draw("same")
-legend.Draw("same")
+# Draw plot                                                                                                                                                                               
+
+eta1_effs.Draw("AP same")
+
 c1.Update()
+efficiency = eta1_effs
+efficiency.Draw()
+ROOT.gPad.Update()
+graph = efficiency.GetPaintedGraph()
+graph.SetMinimum(0)
+ROOT.gPad.Update()
+legend.Draw()
+c1.Update()
+eta2_effs.SetLineColor(ROOT.kRed)
+eta2_effs.Draw("P same")
+eta3_effs.SetLineColor(ROOT.kBlue)
+eta3_effs.Draw("P same")
 
 # Saves to pdf
 c1.SaveAs("Combined_Efficiency.pdf")
