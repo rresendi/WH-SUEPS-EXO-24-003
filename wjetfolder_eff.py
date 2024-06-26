@@ -173,11 +173,11 @@ for filename in os.listdir(input_folder):
     if filename.endswith(".root"):
         sample_name = os.path.splitext(filename)[0]
         input_file = os.path.join(input_folder, filename)
-        print(f"Processing file: {filename}")
+        
 
         with uproot.open(input_file) as f:
             evs = Events(f)
-
+        print(f"Processing file: {filename}")
         goodElectrons = define_good_electrons(evs)
 
         for (etas, hists) in zip(eta_split, eta_hists):
