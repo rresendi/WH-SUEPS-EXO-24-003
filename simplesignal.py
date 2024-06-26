@@ -23,7 +23,7 @@ args = vars(parser.parse_args())
 sample_name= args["input"]
 
 output_file = "MC_electron_efficiencies.root"
-input_file = "/eos/cms/store/user/cericeci/forRyleighAndBaily/WJets/" + sample_name + ".root"
+input_file = "/eos/user/j/jreicher/SUEP/WH_private_signals/merged/" + sample_name + ".root"
 
 # Gets relevant variables from file                                                                                                                                                                                   
 def Events(f):
