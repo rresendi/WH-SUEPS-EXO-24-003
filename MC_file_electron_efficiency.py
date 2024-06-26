@@ -159,8 +159,7 @@ legend.SetTextColor(ROOT.kBlack)
 legend.SetTextFont(42)
 legend.SetTextSize(0.03)
 
-# Draw plot                                                                                                                                                                                                
-
+# Draw plot
 eta1_effs.Draw()
 eta2_effs.SetLineColor(ROOT.kRed)
 eta2_effs.Draw("same")
