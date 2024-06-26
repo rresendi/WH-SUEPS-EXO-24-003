@@ -12,13 +12,14 @@ ROOT.gROOT.SetBatch(True)
 # Initialize parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--input", help = "Name of input folder", type = str)
+parser.add_argument("--input", help = "Name of input file", type = str)
 args = vars(parser.parse_args())
 
-# Name of sample folder
-input_folder = args["input"]
+# Name of sample                                                                                                                                                                                           
+sample_name = args["input"]
 
 output_file = "MC_electron_efficiencies.root"
+input_file = "/eos/cms/store/user/cericeci/forRyleighAndBaily/WJets/" + sample_name + ".root"
 
 # Gets relevant events from file
 def Events(f):
@@ -67,13 +68,6 @@ def define_good_electrons(evs):
 
     return electrons[cutElectrons]
 
-# Computes deltaR2
-def deltaR2(eta1, phi1, eta2, phi2):
-    deta = eta1 - eta2
-    dphi = phi1 - phi2
-    dphi = np.arccos(np.cos(dphi))
-    return deta**2 + dphi**2
-
 # Gets matched online/offline electrons from file
 def isHLTMatched(events, goodElectrons):
     trigObj = ak.zip({
@@ -99,6 +93,13 @@ def isHLTMatched(events, goodElectrons):
                                   filterbits3))]
 
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested=True))
+    
+    # Computes deltaR2
+    def deltaR2(eta1, phi1, eta2, phi2):
+        deta = eta1 - eta2
+        dphi = phi1 - phi2
+        dphi = np.arccos(np.cos(dphi))
+        return deta**2 + dphi**2
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     min_dr2 = ak.min(alldr2, axis=2)
     match1El = ak.any(min_dr2 < 0.1, axis=1)
@@ -163,10 +164,13 @@ def ele_hists(events, etas, hists):
 
     return 0
 
-eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 2.5]]
-eta_hists = [[eta1_ele_totalhist, eta1_ele_filthist],
-             [eta2_ele_totalhist, eta2_ele_filthist],
-             [eta3_ele_totalhist, eta3_ele_filthist]]
+eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 3.0]]
+eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
+             [eta2_ele_totalhist,eta2_ele_filthist],
+             [eta3_ele_totalhist,eta3_ele_filthist]]
+
+for (etas,hists) in zip(eta_split, eta_hists):
+    ele_hists(evs, etas, hists)
 
 # Loop over files in the input folder
 for filename in os.listdir(input_folder):
@@ -183,39 +187,31 @@ for filename in os.listdir(input_folder):
         for (etas, hists) in zip(eta_split, eta_hists):
             (evs, etas, hists)
 
-# Fills efficiency
-eta1_effs = ROOT.TEfficiency(eta1_ele_filthist, eta1_ele_totalhist)
-eta2_effs = ROOT.TEfficiency(eta2_ele_filthist, eta2_ele_totalhist)
-eta3_effs = ROOT.TEfficiency(eta3_ele_filthist, eta3_ele_totalhist)
-c1 = ROOT.TCanvas("canvas", "", 800, 600)
+# Fills efficiency                                                                                                                                                                                         
+
+eta1_effs = ROOT.TEfficiency(eta1_ele_filthist,eta1_ele_totalhist)
+eta2_effs = ROOT.TEfficiency(eta2_ele_filthist,eta2_ele_totalhist)
+eta3_effs = ROOT.TEfficiency(eta3_ele_filthist,eta3_ele_totalhist)
+c1 = ROOT.TCanvas ("canvas","",800,600)
 
 # Creates Efficiency Plot w legend
 eta1_effs.SetTitle("Electron Trigger Efficiency in bins of pT;Electron pT [GeV];Efficiency")
 legend = ROOT.TLegend(0.5, 0.1, 0.9, 0.4)
 legend.AddEntry(eta1_effs, "|#eta|<1.0", "l")
 legend.AddEntry(eta2_effs, "1.0<|#eta|<2.0", "l")
-legend.AddEntry(eta3_effs, "2.0<|#eta|<2.5", "l")
+legend.AddEntry(eta3_effs, "2.0<|#eta|<3.0", "l")
 legend.SetTextColor(ROOT.kBlack)
 legend.SetTextFont(42)
 legend.SetTextSize(0.03)
 
-# Draw plot                                                                                                                                                                               
-
-eta1_effs.Draw("AP same")
-
-c1.Update()
-efficiency = eta1_effs
-efficiency.Draw()
-ROOT.gPad.Update()
-graph = efficiency.GetPaintedGraph()
-graph.SetMinimum(0)
-ROOT.gPad.Update()
-legend.Draw()
-c1.Update()
+# Draw plot
+eta1_effs.Draw()
 eta2_effs.SetLineColor(ROOT.kRed)
-eta2_effs.Draw("P same")
+eta2_effs.Draw("same")
 eta3_effs.SetLineColor(ROOT.kBlue)
-eta3_effs.Draw("P same")
+eta3_effs.Draw("same")
+legend.Draw("same")
+c1.Update()
 
 # Saves to pdf
 c1.SaveAs("Combined_Efficiency.pdf")
@@ -232,4 +228,4 @@ ele_eff.Write()
 
 root_file.Close()
 
-print("All samples processed and combined.")
+print("Jet sample " + sample_name + " complete")
