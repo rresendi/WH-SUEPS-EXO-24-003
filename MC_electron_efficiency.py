@@ -116,7 +116,7 @@ def Events(f):
 
 with uproot.open(input_file) as f:
     evs = Events(f)
-
+    
 # Defining a good electron                                                                                                                                                                                 
 electrons = ak.zip({
         "pt": evs["Electron_pt"],
