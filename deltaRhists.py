@@ -238,7 +238,7 @@ def ele_hists(events, etas, hists):
     evs = ele[ele_quality_check & eta_split]
     tr_evs = evs[triggerSingleElectron]
 
-    for deltaR, pt in zip(deltaR_values[both], ele[both]):
+    for deltaR, pt in zip(deltaR_values[ele_quality_check & eta_split], ele[ele_quality_check & eta_split]):
         for value, pt_val in zip(deltaR, pt):
             deltaR_vs_pt_hist.Fill(pt_val, value)
 
