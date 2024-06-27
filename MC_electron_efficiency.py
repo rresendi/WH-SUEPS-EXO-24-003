@@ -117,7 +117,7 @@ def Events(f):
 with uproot.open(input_file) as f:
     evs = Events(f)
     
-# Defining a good electron                                                                                                                                                                                 
+# Defining an offline electron                                                                                                                                                                                 
 electrons = ak.zip({
         "pt": evs["Electron_pt"],
         "eta": evs["Electron_eta"],
@@ -139,11 +139,11 @@ cutElectrons = (
         & (abs(evs["GenPart_pdgId"["GenPart_genPartIdxMother"]]) == 24)
     )
 
-goodElectrons = electrons[cutElectrons]
+offlineElectrons = electrons[cutElectrons]
 
 # Gets matched online/offline electrons from file                                                                                                                                                          
 
-def isHLTMatched(events, goodElectrons):
+def isHLTMatched(events, offlineElectrons):
     trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
             "eta": events["TrigObj_eta"],
@@ -176,7 +176,7 @@ def isHLTMatched(events, goodElectrons):
 
         return deta**2 + dphi**2
     
-    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([goodElectrons, trigObjSingleEl], axis=1, nested = True))
+    toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([offlineElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     min_dr2 = ak.min(alldr2, axis=2)
     match1El = ak.any(min_dr2 < 0.1, axis=1)
@@ -218,7 +218,7 @@ def ele_hists(events, etas, hists):
 
     # Electron selection                                                                                                                                                                                   
 
-    ele_quality_check = isHLTMatched(events, goodElectrons)
+    ele_quality_check = isHLTMatched(events, offlineElectrons)
 
     # Trigger selection                                                                                                                                                                                    
 
