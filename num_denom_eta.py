@@ -210,6 +210,7 @@ legend.SetTextSize(0.03)
 # Plot numerator for eta bins 1, 2, and 3                                                                                                                                                                  
 c1.cd(1)
 eta_ele_filthist1.SetTitle("Number of Cut Events in bins of pT;Electron pT [GeV];Number of events")
+eta_ele_filthist1.SetMaximum(550)
 eta_ele_filthist1.SetStats(0)
 eta_ele_filthist1.Draw()
 eta_ele_filthist2.Draw("same")
