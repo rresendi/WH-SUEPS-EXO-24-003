@@ -151,8 +151,10 @@ def isHLTMatched(events, offlineElectrons):
     
     filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2) & (events["HLT_Ele32_WPTight_Gsf"]) 
     filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048) & (events["HLT_Ele115_CaloIdVT_GsfTrkIdT"])
-    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192) & (events["HLT_Photon200"])
-    
+    if "UL17" in sample_name or "UL18" in sample_name:
+        filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192) & (events["HLT_Photon200"])
+    else:
+        filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192) & (events["HLT_Photon175"])
     trigObjSingleEl = trigObj[((abs(trigObj.id) == 11)
                                & (trigObj.pt >= 35)
                                & ((abs(trigObj.eta) < 1.444) | (abs(trigObj.eta) > 1.566))
