@@ -28,19 +28,18 @@ elif "hadronic" in sample_name:
 else:
     decay_type = "leptonic"
 
-# conditions for what year
+# conditions for what year                                                                                                                                                                                 
 if "UL18" in sample_name:
-    year="2018 conditions"
-    folder = "MC_eff_outputs_2018/"
+    year = "2018 conditions"
+    folder = "ele_eff_outputs_2018/"
 elif "UL17" in sample_name:
     year = "2017 conditions"
-    folder = "MC_eff_outputs_2017/"
+    folder = "ele_eff_outputs_2017/"
 elif "UL16APV" in sample_name:
-    year = "2016 APV conditions"
-    folder = "MC_eff_outputs_2016APV/"
+    folder = "ele_eff_outputs_2016APV/"
 else:
     year = "2016 conditions"
-    folder = "MC_eff_outputs_2016/"
+    folder = "ele_eff_outputs_2016/"
 
 # dark meson (phi) mass
 md = ""
@@ -133,13 +132,14 @@ cutElectrons = (
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
         & ((abs(evs["Electron_eta"]) < 1.444) | (abs(evs["Electron_eta"]) > 1.566))
         & (abs(evs["Electron_eta"]) < 2.5)
+        & (abs(evs["GenPart_pdgId"["GenPart_genPartIdxMother"]]) == 24)
     )
 
 offlineElectrons = electrons[cutElectrons]
 
-# Gets matched online/offline muons from file
-def isHLTMatched(events, offlineMuons):
-     trigObj = ak.zip({
+# Gets matched online/offline electrons from file
+def isHLTMatched(events, offlineElectrons):
+    trigObj = ak.zip({
             "pt": events["TrigObj_pt"],
             "eta": events["TrigObj_eta"],
             "phi": events['TrigObj_phi'],
@@ -150,9 +150,9 @@ def isHLTMatched(events, offlineMuons):
     
     # Defining the conditions for filtering each trigger
     
-    filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2) & (events["HLT_Ele32_WPTight_Gsf"]) 
-    filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048) & (events["HLT_Ele115_CaloIdVT_GsfTrkIdT"])
-    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192) & (events["HLT_Photon200"])
+    filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2)
+    filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048)
+    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192)
     
     trigObjSingleEl = trigObj[((abs(trigObj.id) == 11)
                                & (trigObj.pt >= 35)
@@ -161,19 +161,20 @@ def isHLTMatched(events, offlineMuons):
                                & (filterbits1 |
                                 filterbits2 |
                                 filterbits3))]
+    
+    # Computes deltaR2                                                                                                                                                                                         
 
-    # Computes deltaR2
     def deltaR2(eta1, phi1, eta2, phi2):
-            deta = eta1 - eta2
-            dphi = phi1 - phi2
-            dphi = np.arccos(np.cos(dphi))
+        deta = eta1 - eta2
+        dphi = phi1 - phi2
+        dphi = np.arccos(np.cos(dphi))
 
-            return deta**2 + dphi**2
-
+        return deta**2 + dphi**2
+    
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([offlineElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     min_dr2 = ak.min(alldr2, axis=2)
-    match1El = ak.any((min_dr2 < 0.1), axis = 1)
+    match1El = ak.any(min_dr2 < 0.1, axis=1)
     
     return match1El, min_dr2
 
@@ -181,37 +182,32 @@ def isHLTMatched(events, offlineMuons):
 eta_bins = [[0.0, 1.0], [1.0, 2.0], [2.0, 3.0]]
 colors = [ROOT.kBlack, ROOT.kRed, ROOT.kBlue]
 
-# Create TH1D histogram for deltaR vs electron pT
-histogram = ROOT.TH1D("hist_pt_vs_deltaR", "Electron pT vs DeltaR; Electron pT [GeV]; DeltaR", 50, 0, 200)
+c1 = ROOT.TCanvas("c1", “Electron pT vs Min DeltaR", 800, 600)
+legend = ROOT.TLegend(0.5, 0.1, 0.9, 0.4)
+graphs = []
 
-# Loop over eta bins
 for i, (eta_min, eta_max) in enumerate(eta_bins):
     eta_mask = (abs(offlineElectrons.eta) >= eta_min) & (abs(offlineElectrons.eta) < eta_max)
     electrons_eta_bin = offlineElectrons[eta_mask]
     match1El, min_dr2 = isHLTMatched(evs, electrons_eta_bin)
 
-    # Flatten arrays and convert to numpy
     matched_pts = ak.flatten(electrons_eta_bin[match1El].pt).to_numpy()
     min_deltaRs = np.sqrt(ak.flatten(min_dr2[match1El]).to_numpy())
 
-    # Fill histogram with electron pT and deltaR values
-    for pt, deltaR_val in zip(matched_pts, min_deltaRs):
-        histogram.Fill(pt, deltaR_val)
+    graph = ROOT.TGraph(len(matched_pts), array('d', matched_pts), array('d', min_deltaRs))
+    graph.SetMarkerStyle(20)
+    graph.SetMarkerColor(colors[i])
+    graph.SetLineColor(colors[i])
+    graphs.append(graph)
 
-# Create canvas and draw histogram
-canvas = ROOT.TCanvas("canvas_pt_vs_deltaR", "Electron pT vs DeltaR", 800, 600)
-histogram.SetStats(0)
-legend = ROOT.TLegend(0.5, 0.6, 0.9, 0.9)
-legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
-legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
-legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
-legend.SetTextColor(ROOT.kBlack)
-legend.SetTextFont(42)
-legend.SetTextSize(0.03)
-histogram.Draw()
+    legend.AddEntry(graph, f"{eta_min}<|#eta|<{eta_max}", "l")
+
+graphs[0].SetTitle(“Electron pT vs Min DeltaR;Electron pT [GeV];Min DeltaR")
+graphs[0].Draw("AP")
+for graph in graphs[1:]:
+    graph.Draw("P same")
+
 legend.Draw()
-
-# Save plot as PDF
-canvas.SaveAs(sample_name + "_pt_vs_deltaR.pdf")
+c1.SaveAs(sample_name + "_pt_vs_minDeltaR.pdf")
 
 print("Sample " + sample_name + " processed")
