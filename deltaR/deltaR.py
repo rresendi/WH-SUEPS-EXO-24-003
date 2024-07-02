@@ -173,7 +173,7 @@ def isHLTMatched(events, offlineMuons):
     toMatch1El, trigObjSingleEl = ak.unzip(ak.cartesian([offlineElectrons, trigObjSingleEl], axis=1, nested = True))
     alldr2 = deltaR2(toMatch1El.eta, toMatch1El.phi, trigObjSingleEl.eta, trigObjSingleEl.phi)
     min_dr2 = ak.min(alldr2, axis=2)
-    match1El = (min_dr2 < 0.1)
+    match1El = ak.any((min_dr2 < 0.1), axis = 1)
     
     return match1El, min_dr2
 
