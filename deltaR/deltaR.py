@@ -132,7 +132,6 @@ cutElectrons = (
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
         & ((abs(evs["Electron_eta"]) < 1.444) | (abs(evs["Electron_eta"]) > 1.566))
         & (abs(evs["Electron_eta"]) < 2.5)
-        & (abs(evs["GenPart_pdgId"["GenPart_genPartIdxMother"]]) == 24)
     )
 
 offlineElectrons = electrons[cutElectrons]
@@ -183,7 +182,13 @@ eta_bins = [[0.0, 1.0], [1.0, 2.0], [2.0, 3.0]]
 colors = [ROOT.kBlack, ROOT.kRed, ROOT.kBlue]
 
 c1 = ROOT.TCanvas("c1", “Electron pT vs Min DeltaR", 800, 600)
-legend = ROOT.TLegend(0.5, 0.1, 0.9, 0.4)
+legend = ROOT.TLegend(0.5, 0.6, 0.9, 0.9)
+legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
+legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
+legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
+legend.SetTextColor(ROOT.kBlack)
+legend.SetTextFont(42)
+legend.SetTextSize(0.03)
 graphs = []
 
 for i, (eta_min, eta_max) in enumerate(eta_bins):
