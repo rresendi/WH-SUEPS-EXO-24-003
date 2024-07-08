@@ -156,8 +156,8 @@ def ele_hists(events, etas, hists):
 
     # Select based on trigger
     ele = events["Electron_pt"]
-    evs = ele[ele_quality_check & eta_split]
-    tr_evs = evs[triggerSingleElectron]
+    evs = ele[eta_split]
+    tr_evs = evs[ele_quality_check & triggerSingleElectron]
 
     # Fill histograms
     for ev in evs:
