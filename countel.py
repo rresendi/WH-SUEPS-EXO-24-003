@@ -99,14 +99,6 @@ def Events(f):
                 'Electron_eta',
                 'Electron_dxy',
                 'Electron_dz',
-                'Electron_phi',
-                'Electron_mass',
-                'Electron_pdgId',
-                'TrigObj_pt',
-                'TrigObj_eta',
-                'TrigObj_phi',
-                'TrigObj_id',
-                'TrigObj_filterBits'
                 ])
     return evs
 
