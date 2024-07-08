@@ -175,8 +175,6 @@ def ele_hists(events, etas, hists):
     # Select based on trigger                                                                                                                                                                              
 
     ele = events["Electron_pt"]
-    cutHasOneElec = (ak.num(ele_quality_check, axis=1)==1)
-    ele = ele[cutHasOneElec]
     evs = ele[ele_quality_check & eta_split]
     tr_evs = evs[triggerSingleElectron]
 
