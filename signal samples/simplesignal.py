@@ -180,7 +180,7 @@ def ele_hists(events, etas, hists):
 
     ele = events["Electron_pt"]
     evs = ele[eta_split]
-    tr_evs = evs[combined_mask & triggerSingleElectron]
+    tr_evs = ele[combined_mask & triggerSingleElectron]
 
     # Fill histograms                                                                                                                                                                                      
 
