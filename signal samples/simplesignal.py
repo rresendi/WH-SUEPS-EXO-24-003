@@ -198,9 +198,9 @@ for (etas,hists) in zip(eta_split, eta_hists):
     ele_hists(evs, etas, hists)
 
 # Loop over eta bins and fill histograms for numerator and denominator plots
-ele_hists(evs, eta_split[0], [eta_ele_totalhist1, eta_ele_filthist1])
-ele_hists(evs, eta_split[1], [eta_ele_totalhist2, eta_ele_filthist2])
-ele_hists(evs, eta_split[2], [eta_ele_totalhist3, eta_ele_filthist3])
+ele_hists(evs, eta_split[0], [eta1_ele_totalhist, et1a_ele_filthist])
+ele_hists(evs, eta_split[1], [eta2_ele_totalhist, eta2_ele_filthist])
+ele_hists(evs, eta_split[2], [eta3_ele_totalhist, eta3_ele_filthist])
 
 # Fills efficiency                                                                                                                                                                                         
 
