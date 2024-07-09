@@ -305,18 +305,6 @@ c2.SaveAs(sample_name + "_numerator_eta_bins.pdf")
 # Create canvas for denominator plot                                                                                                                                                                       
 c3 = ROOT.TCanvas("canvas2", "", 800, 600)
 
-# Create second legend                                                                                                                                                                                     
-legend = ROOT.TLegend(0.5, 0.6, 0.9, 0.9)
-legend.AddEntry(eta1_ele_filthist, "|#eta|<1.0", "l")
-legend.AddEntry(eta2_ele_filthist, "1.0<|#eta|<2.0", "l")
-legend.AddEntry(eta3_ele_filthist, "2.0<|#eta|<3.0", "l")
-legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
-legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
-legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
-legend.SetTextColor(ROOT.kBlack)
-legend.SetTextFont(42)
-legend.SetTextSize(0.03)
-
 # Plot denominator for eta bins 1, 2, and 3                                                                                                                                                                
 c3.cd(1)
 eta1_ele_totalhist.SetTitle("Number of Total Events in bins of pT;Electron pT [GeV];Number of Events")
