@@ -118,11 +118,6 @@ ele_bin_edges = array('d',[0,2,4,6,8,10,12,
                          60,70,80,90,100,
                          120,140,160,180,200])
 
-# Histograms for overall efficiency                                                                                                                                                                        
-
-ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
-ele_filthist = ROOT.TH1D("filt_events","Filtered Events",len(ele_bin_edges)-1,ele_bin_edges)
-
 # Split into three regions of eta                                                                                                                                                                          
 
 eta1_ele_totalhist = ROOT.TH1D("total_events","Total Events",len(ele_bin_edges)-1,ele_bin_edges)
