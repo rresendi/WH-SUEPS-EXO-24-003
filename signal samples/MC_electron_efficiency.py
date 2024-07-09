@@ -154,9 +154,9 @@ def isHLTMatched(events, offlineElectrons):
     
     # Defining the conditions for filtering each trigger
     
-    filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2)
-    filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048)
-    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192)
+    filterbits1 = ((events['TrigObj_filterBits'] & 2) == 2) & (events["HLT_Ele32_WPTight_Gsf"]) 
+    filterbits2 = ((events['TrigObj_filterBits'] & 2048) == 2048) & (events["HLT_Ele115_CaloIdVT_GsfTrkIdT"])
+    filterbits3 = ((events['TrigObj_filterBits'] & 8192) == 8192) & (events["HLT_Photon200"])
     
     trigObjSingleEl = trigObj[((abs(trigObj.id) == 11)
                                & (trigObj.pt >= 35)
@@ -238,12 +238,15 @@ def ele_hists(events, etas, hists):
         (np.abs(events["Electron_eta"]) >= eta_min)
         & (np.abs(events["Electron_eta"]) < eta_max)
     )
-
+    # Create combined mask
+    
+    combined_mask = Ele_quality_check & eta_split
+    
     # Select based on trigger                                                                                                                                                                              
 
     ele = events["Electron_pt"]
-    evs = ele[ele_quality_check & eta_split]
-    tr_evs = evs[triggerSingleElectron]
+    evs = ele[eta_split]
+    tr_evs = evs[combined_mask & triggerSingleElectron]
 
     # Fill histograms                                                                                                                                                                                      
 
@@ -256,16 +259,17 @@ def ele_hists(events, etas, hists):
 
     return 0
 
-eta_split = [[0, 1.0], [1.0, 2.0], [2.0, 3.0]]
-eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
+eta_split = [[0, 3], [0, 1.0], [1.0, 2.0], [2.0, 3.0]]
+eta_hists = [[ele_totalhist, ele_filthist],
+             [eta1_ele_totalhist,eta1_ele_filthist],
              [eta2_ele_totalhist,eta2_ele_filthist],
              [eta3_ele_totalhist,eta3_ele_filthist]]
 
 for (etas,hists) in zip(eta_split, eta_hists):
     ele_hists(evs, etas, hists)
 
-# Fills efficiency                                                                                                                                                                                         
-
+# Fills efficiency                                                                                                                                                                                   
+alleta_effs = ROOT.Tefficiency(ele_filthist, ele_totalhist)
 eta1_effs = ROOT.TEfficiency(eta1_ele_filthist,eta1_ele_totalhist)
 eta2_effs = ROOT.TEfficiency(eta2_ele_filthist,eta2_ele_totalhist)
 eta3_effs = ROOT.TEfficiency(eta3_ele_filthist,eta3_ele_totalhist)
