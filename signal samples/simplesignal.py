@@ -171,12 +171,16 @@ def ele_hists(events, etas, hists):
         (np.abs(events["Electron_eta"]) >= eta_min)
         & (np.abs(events["Electron_eta"]) < eta_max)
     )
-
+    
+    # Combined mask
+    
+    combined_mask = ele_quality_check & eta_split
+    
     # Select based on trigger                                                                                                                                                                              
 
     ele = events["Electron_pt"]
-    evs = ele[ele_quality_check & eta_split]
-    tr_evs = evs[triggerSingleElectron]
+    evs = ele[eta_split]
+    tr_evs = evs[combined_mask & triggerSingleElectron]
 
     # Fill histograms                                                                                                                                                                                      
 
