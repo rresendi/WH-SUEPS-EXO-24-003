@@ -197,6 +197,11 @@ eta_hists = [[eta1_ele_totalhist,eta1_ele_filthist],
 for (etas,hists) in zip(eta_split, eta_hists):
     ele_hists(evs, etas, hists)
 
+# Loop over eta bins and fill histograms for numerator and denominator plots
+ele_hists(evs, eta_split[0], [eta_ele_totalhist1, eta_ele_filthist1])
+ele_hists(evs, eta_split[1], [eta_ele_totalhist2, eta_ele_filthist2])
+ele_hists(evs, eta_split[2], [eta_ele_totalhist3, eta_ele_filthist3])
+
 # Fills efficiency                                                                                                                                                                                         
 
 eta1_effs = ROOT.TEfficiency(eta1_ele_filthist,eta1_ele_totalhist)
@@ -233,7 +238,6 @@ efficiency = eta1_effs
 graph = efficiency.GetPaintedGraph()
 graph.SetMinimum(0)
 
-
 # Update canvas again                                                                                                                                                                     
 ROOT.gPad.Update()
 
@@ -257,6 +261,69 @@ eta3_effs.SetLineColor(ROOT.kBlue)
 # Saves to pdf
 
 c1.SaveAs(sample_name + "_Efficiency.pdf")
+
+# Set line colors for histograms                                                                                                                                                                           
+eta_ele_filthist1.SetLineColor(ROOT.kBlack)
+eta_ele_filthist2.SetLineColor(ROOT.kRed)
+eta_ele_filthist3.SetLineColor(ROOT.kBlue)
+eta_ele_totalhist1.SetLineColor(ROOT.kBlack)
+eta_ele_totalhist2.SetLineColor(ROOT.kRed)
+eta_ele_totalhist3.SetLineColor(ROOT.kBlue)
+
+# Create canvas for numerator plot                                                                                                                                                                         
+c2 = ROOT.TCanvas("canvas1", "", 800, 600)
+
+# Create first legend                                                                                                                                                                                      
+legend = ROOT.TLegend(0.5, 0.6, 0.9, 0.9)
+legend.AddEntry(eta_ele_filthist1, "|#eta|<1.0", "l")
+legend.AddEntry(eta_ele_filthist2, "1.0<|#eta|<2.0", "l")
+legend.AddEntry(eta_ele_filthist3, "2.0<|#eta|<3.0", "l")
+legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
+legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
+legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
+legend.SetTextColor(ROOT.kBlack)
+legend.SetTextFont(42)
+legend.SetTextSize(0.03)
+
+# Plot numerator for eta bins 1, 2, and 3                                                                                                                                                                  
+c2.cd(1)
+eta_ele_filthist1.SetTitle("Number of Cut Events in bins of pT;Electron pT [GeV];Number of events")
+eta_ele_filthist1.SetMaximum(550)
+eta_ele_filthist1.SetStats(0)
+eta_ele_filthist1.Draw()
+eta_ele_filthist2.Draw("same")
+eta_ele_filthist3.Draw("same")
+legend.Draw()
+
+# Save numerator plot as PDF                                                                                                                                                                               
+c2.SaveAs(sample_name + "_numerator_eta_bins.pdf")
+
+# Create canvas for denominator plot                                                                                                                                                                       
+c3 = ROOT.TCanvas("canvas2", "", 800, 600)
+
+# Create second legend                                                                                                                                                                                     
+legend = ROOT.TLegend(0.5, 0.6, 0.9, 0.9)
+legend.AddEntry(eta_ele_totalhist1, "|#eta|<1.0", "l")
+legend.AddEntry(eta_ele_totalhist2, "1.0<|#eta|<2.0", "l")
+legend.AddEntry(eta_ele_totalhist3, "2.0<|#eta|<3.0", "l")
+legend.AddEntry(ROOT.nullptr, "T = " + temp + "GeV, " + year,"")
+legend.AddEntry(ROOT.nullptr, "SUEP decay type: " + decay_type,"")
+legend.AddEntry(ROOT.nullptr, "Dark meson mass = " + md,"")
+legend.SetTextColor(ROOT.kBlack)
+legend.SetTextFont(42)
+legend.SetTextSize(0.03)
+
+# Plot denominator for eta bins 1, 2, and 3                                                                                                                                                                
+c3.cd(1)
+eta_ele_totalhist1.SetTitle("Number of Total Events in bins of pT;Electron pT [GeV];Number of Events")
+eta_ele_totalhist1.SetStats(0)
+eta_ele_totalhist1.Draw()
+eta_ele_totalhist2.Draw("same")
+eta_ele_totalhist3.Draw("same")
+legend.Draw()
+# Save denominator plot as PDF                                                                                                                                                                             
+c3.SaveAs(sample_name + "_denominator_eta_bins.pdf")
+
 # Saves overall efficiency                                                                                                                                                                                 
 
 root_file = ROOT.TFile(output_file, "UPDATE")
