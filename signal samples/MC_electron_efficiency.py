@@ -136,7 +136,6 @@ cutElectrons = (
         & (abs(evs["Electron_dz"]) < 0.10 + 0.10 * (abs(evs["Electron_eta"]) > 1.479))
         & ((abs(evs["Electron_eta"]) < 1.444) | (abs(evs["Electron_eta"]) > 1.566))
         & (abs(evs["Electron_eta"]) < 2.5)
-        & (abs(evs["GenPart_pdgId"["GenPart_genPartIdxMother"]]) == 24)
     )
 
 offlineElectrons = electrons[cutElectrons]
