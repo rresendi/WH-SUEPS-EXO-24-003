@@ -263,12 +263,12 @@ eta3_effs.SetLineColor(ROOT.kBlue)
 c1.SaveAs(sample_name + "_Efficiency.pdf")
 
 # Set line colors for histograms                                                                                                                                                                           
-eta_ele_filthist1.SetLineColor(ROOT.kBlack)
-eta_ele_filthist2.SetLineColor(ROOT.kRed)
-eta_ele_filthist3.SetLineColor(ROOT.kBlue)
-eta_ele_totalhist1.SetLineColor(ROOT.kBlack)
-eta_ele_totalhist2.SetLineColor(ROOT.kRed)
-eta_ele_totalhist3.SetLineColor(ROOT.kBlue)
+eta1_ele_filthist.SetLineColor(ROOT.kBlack)
+eta2_ele_filthist.SetLineColor(ROOT.kRed)
+eta3_ele_filthist.SetLineColor(ROOT.kBlue)
+eta1_ele_totalhist.SetLineColor(ROOT.kBlack)
+eta2_ele_totalhist.SetLineColor(ROOT.kRed)
+eta3_ele_totalhist.SetLineColor(ROOT.kBlue)
 
 # Create canvas for numerator plot                                                                                                                                                                         
 c2 = ROOT.TCanvas("canvas1", "", 800, 600)
