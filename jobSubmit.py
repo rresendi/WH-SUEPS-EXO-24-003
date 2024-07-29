@@ -51,7 +51,7 @@ for x in range(1, int(NumberOfJobs) + 1):
         fout.write("source /afs/cern.ch/cms/cmsset_default.sh\n")
         fout.write("cmsenv\n")
         fout.write("cd -\n")
-        fout.write(f"python3 {os.getcwd()}/../plotHistogram.py {tag} {isdata} {eta} {output}/output_{x}.root {' '.join(jobFiles)}\n")
+        fout.write(f"python3 /eos/home-z/zdemirag/forWH/doTriggerEff.py {tag} {isdata} {eta} {output}/output_{x}.root {' '.join(jobFiles)}\n")
         fout.write("echo 'STOP---------------'\n")
         fout.write("echo\n")
         fout.write("echo\n")
