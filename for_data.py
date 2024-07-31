@@ -26,11 +26,8 @@ def reference_cuts(events, self, met):
         )
     else:
         raise ValueError("No era is defined. Please specify the year")
-
-    if self.scouting == 1:
-        events = events[LumiJSON(events.run, events.lumSec)]
-    else:
-        events = events[LumiJSON(events.run, events.luminosityBlock)]
+        
+    events = events[LumiJSON(events.run, events.luminosityBlock)]
 
     # Apply the MET cut
     met_cut = events.MET.pt > 120
