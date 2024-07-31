@@ -30,7 +30,7 @@ def reference_cuts(events, self, met):
     events = events[LumiJSON(events.run, events.luminosityBlock)]
 
     # Apply the MET cut
-    met_cut = events.MET.pt > 120
+    met_cut = events.MET.pt > 150
     events = events[met_cut]
 
     # Apply quality filters
