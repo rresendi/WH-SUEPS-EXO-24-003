@@ -1,3 +1,7 @@
+# imports
+from coffea import lumi_tools
+
+# grab events that pass reference cuts
 def reference_cuts(events, self, met):
     # Apply lumi mask
     if (self.era == "2016" or self.era == "2016apv") and self.scouting != 1:
