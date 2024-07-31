@@ -4,15 +4,15 @@ from coffea import lumi_tools
 # grab events that pass reference cuts
 def reference_cuts(events, self, met):
     # Apply lumi mask
-    if (self.era == "2016" or self.era == "2016apv") and self.scouting != 1:
+    if (self.era == "2016" or self.era == "2016apv"):
         LumiJSON = lumi_tools.LumiMask(
             "data/GoldenJSON/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
         )
-    elif self.era == "2016" and self.scouting == 1:
+    elif self.era == "2016":
         LumiJSON = lumi_tools.LumiMask(
             "data/GoldenJSON/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_scout.txt"
         )
-    elif self.era == "2016apv" and self.scouting == 1:
+    elif self.era == "2016apv":
         LumiJSON = lumi_tools.LumiMask(
             "data/GoldenJSON/Cert_271036-284044_13TeV_Legacy2016_Collisions16APV_JSON_scout.txt"
         )
