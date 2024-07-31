@@ -110,6 +110,9 @@ def passes_lepton_cuts(ev, lepton, leptonIndex):
             and abs(ev.Muon_dz[leptonIndex]) <= 0.05
             and abs(ev.Muon_dxy[leptonIndex]) <= 0.02
             and ev.Muon_pfIsoId[leptonIndex] >= 5
+            and ev.nJet[leptonIndex] > 0
+            and ev.Jet_pt[leptonIndex] > 60
+
         )
     else:
         return (
@@ -119,6 +122,8 @@ def passes_lepton_cuts(ev, lepton, leptonIndex):
             and abs(ev.Electron_dz[leptonIndex]) < 0.10 + 0.10 * (abs(ev.Electron_eta[leptonIndex]) > 1.479)
             and ((abs(ev.Electron_eta[leptonIndex]) < 1.444) or (abs(ev.Electron_eta[leptonIndex]) > 1.566))
             and abs(ev.Electron_eta[leptonIndex]) < 2.5
+            and ev.nJet[leptonIndex] > 0
+            and ev.Jet_pt[leptonIndex] > 60
         )
     
 def deltaR(eta1, phi1, eta2, phi2):
