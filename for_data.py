@@ -1,6 +1,3 @@
-# imports
-from coffea import lumi_tools
-
 # grab events that pass reference cuts
 def reference_cuts(events, self, met):
     # Apply lumi mask
