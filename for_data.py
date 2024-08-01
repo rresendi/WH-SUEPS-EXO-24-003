@@ -1,7 +1,3 @@
-import json
-import numpy as np
-import uproot
-
 def load_lumi_mask(file_path):
     with open(file_path, 'r') as f:
         goldenJSONDict = json.load(f)
@@ -71,6 +67,3 @@ def reference_cuts(events, era):
     events = events[cutAnyFilter]
 
     return events
-
-# Apply reference cuts
-filtered_events = reference_cuts(events, era)
