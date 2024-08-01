@@ -73,4 +73,4 @@ def reference_cuts(events, era):
     return events
 
 # Apply reference cuts
-filtered_events = reference_cuts(events, "2018")
+filtered_events = reference_cuts(events, era)
