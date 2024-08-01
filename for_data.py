@@ -24,13 +24,13 @@ def load_lumi_mask(file_path):
 def reference_cuts(events, era):
     # Apply lumi mask
     if era == "2016" or era == "2016apv":
-        LumiJSON = load_lumi_mask("data/GoldenJSON/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
+        LumiJSON = load_lumi_mask("eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
     elif era == "2016apv":
-        LumiJSON = load_lumi_mask("data/GoldenJSON/Cert_271036-284044_13TeV_Legacy2016APV_JSON_scout.txt")
+        LumiJSON = load_lumi_mask("eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016APV_JSON_scout.txt")
     elif era == "2017":
-        LumiJSON = load_lumi_mask("data/GoldenJSON/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt")
+        LumiJSON = load_lumi_mask("eos/user/r/rresendi/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt")
     elif era == "2018":
-        LumiJSON = load_lumi_mask("data/GoldenJSON/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt")
+        LumiJSON = load_lumi_mask("eos/user/r/rresendi/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt")
     else:
         raise ValueError("No era is defined. Please specify the year")
 
