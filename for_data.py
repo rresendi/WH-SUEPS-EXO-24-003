@@ -322,11 +322,15 @@ for iFile in inputFiles:
 
          #calculate dphi between jet and lepton and veto it <1.5
          lepton_phi = getattr(ev, lepton + "_phi")[highest_pt_lepton_index]
+         lepton_eta = getattr(ev, lepton + "_eta")[highest_pt_lepton_index]
          jet_phi = ev.Jet_phi[highest_jet_pt_index]
+         jet_eta = ev.Jet_eta[highest_jet_pt_index]
+         deltaR_lepJet = deltaR(lepton_eta, lepton_phi, jet_eta,jet_phi)
+         if deltaR_lepJet < 0.5:
+            continue
          dphi_lepJet = dPhi(lepton_phi, jet_phi)
          if dphi_lepJet < 1.5:
-            continue
-
+             continue
          #MET cuts
          passmetCut = ev.MET_pt >= offlineCuts["MET"]
          if passmetCut:
