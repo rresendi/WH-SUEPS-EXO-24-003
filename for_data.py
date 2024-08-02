@@ -358,7 +358,7 @@ for iFile in inputFiles:
          # Variables you want to study
          passlepCut = getattr(ev, lepton + "_pt")[leptonIndex] >= offlineCuts["lep1pt"]
          dphi = ((getattr(ev, lepton + "_phi")[leptonIndex]) - ev.MET_phi)
-         mT = (2  (getattr(ev, lepton + "_pt")[leptonIndex])   (ev.MET_pt)  (1 - np.cos(dphi))) * 0.5
+         mT = (2 * (getattr(ev, lepton + "_pt")[leptonIndex]) *  (ev.MET_pt) * (1 - np.cos(dphi))) ** 0.5
          passmtCut = 30 < mT  < 130
 
          # Then save denominator and numerator
