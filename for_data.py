@@ -119,7 +119,7 @@ def passRefCut(events, era):
         if LumiJSON([run], [luminosityBlock])[0]:
             passed_events.append(event)
     
-    return passed_events
+    events = passed_events
 
     # Apply the MET cut
     met_cut = events["MET_pt"] > 150
