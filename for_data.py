@@ -30,7 +30,10 @@ refhlt = "HLT_MET120_IsoTrk50"
 if lepton == "Muon":
     inputFiles = sys.argv[6:]
     outputHistos = sys.argv[5] # "muon_efficiencies.root"
-    hlt = ["HLT_IsoMu27", "HLT_Mu50"]
+    if data == "data":
+        hlt = ["HLT_IsoMu27", "HLT_Mu50", "HLT_MET120_IsoTrk50"]
+    else:
+        hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
         "MET": 40,
@@ -51,12 +54,18 @@ if lepton == "Muon":
 else:  # Electron-specific configurations
     inputFiles = sys.argv[6:]
     outputHistos = sys.argv[5] # "electron_efficiencies.root"
-    if era == "2017" or era == "2018":
-        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+    if data == "data":
+        if era == "2017" or era == "2018":
+            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200", "HLT_MET120_IsoTrk50"]
+        else:
+            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175", "HLT_MET120_IsoTrk50"]
     else:
-        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
+        if era == "2017" or era == "2018":
+            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+        else:
+            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
-        "lep1pt": 30,
+        "lep1pt": 40,
         "MET": 40,
         "mT": (30, 130)
     }
@@ -240,7 +249,7 @@ for iFile in inputFiles:
         iEv += 1
         if iEv % 1000 == 0:
             print(f"{iEv}/{nEv} events in file processed")
-#        if(iEv % 100000 == 0): break
+        if(iEv % 100000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -294,7 +303,7 @@ for iFile in inputFiles:
             continue
         if dPhi(ev.MET_phi, jet_phi) < 1.5:
             continue
-
+        
         # Check mT cuts, only if not plotting as a function of mT
         dphi = dPhi(lepton_phi, ev.MET_phi)
         mT = np.sqrt(2 * highest_pt * ev.MET_pt * (1 - np.cos(dphi)))
@@ -310,6 +319,14 @@ for iFile in inputFiles:
         elif lepton == "Electron" and highest_pt < 32:
             electron_below32 += 1
 
+        # Variables you want to study
+
+        passmetCut = ev.MET_pt >= offlineCuts["MET"]
+        passlepCut = getattr(ev, lepton + "_pt")[leptonIndex] >= offlineCuts["lep1pt"]
+        dphi = ((getattr(ev, lepton + "_phi")[leptonIndex]) - ev.MET_phi)
+        mT = (2 * (getattr(ev, lepton + "_pt")[leptonIndex])  * (ev.MET_pt) * (1 - np.cos(dphi))) ** 0.5
+        passmtCut = 30 < mT  < 130
+
         # Fill histograms
         if etaOption == "Eta":
             eta_bin = get_eta_bin(lepton_eta)
@@ -317,22 +334,22 @@ for iFile in inputFiles:
                 continue
 
             for var in histBins:
-                fillvar = None
                 passDen = False
+                fillvar = None
                 if var == "lep1pt":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
                     fillvar = highest_pt
                 elif var == "MET":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
                     fillvar = ev.MET_pt
                 elif var == "mT":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
                     fillvar = mT
                 elif var == "lep1phi":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     fillvar = lepton_phi
                 elif var == "MET phi":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     fillvar = ev.MET_phi
 
                 if passDen:
@@ -346,22 +363,22 @@ for iFile in inputFiles:
 
         else:
             for var in histBins:
-                fillvar = None
                 passDen = False
+                fillvar = None
                 if var == "lep1pt":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
                     fillvar = highest_pt
                 elif var == "MET":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
                     fillvar = ev.MET_pt
                 elif var == "mT":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
                     fillvar = mT
                 elif var == "lep1phi":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     fillvar = lepton_phi
                 elif var == "MET phi":
-                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index)
+                    passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     fillvar = ev.MET_phi
 
                 if passDen:
