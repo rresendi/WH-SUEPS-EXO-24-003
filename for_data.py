@@ -245,7 +245,7 @@ for iFile in inputFiles:
         iEv += 1
         if iEv % 1000 == 0:
             print(f"{iEv}/{nEv} events in file processed")
-        if(iEv % 100000 == 0): break
+#        if(iEv % 100000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
