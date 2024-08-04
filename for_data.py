@@ -373,27 +373,32 @@ for iFile in inputFiles:
                 if var == "lep1pt":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut
                     fillvar = getattr(ev, lepton + "_pt")[leptonIndex]
                 elif var == "MET":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut
                     fillvar = mT
                 elif var == "lep1phi":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
+                    else:  
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
                     fillvar = getattr(ev, lepton + "_phi")[leptonIndex]
                 elif var == "MET phi":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
                     fillvar = ev.MET_phi
                 if passDen and fillvar is not None:
                     histos[f"{eta_bin}_{var}_den"].Fill(fillvar)
@@ -406,27 +411,32 @@ for iFile in inputFiles:
                 if var == "lep1pt":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut
                     fillvar = getattr(ev, lepton + "_pt")[leptonIndex]
                 elif var == "MET":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmtCut
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passlepCut and passmetCut
                     fillvar = mT
                 elif var == "lep1phi":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
                     fillvar = getattr(ev, lepton + "_phi")[leptonIndex]
                 elif var == "MET phi":
                     if data == "data":
                         passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut and refhlt
-                    passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
+                    else:
+                        passDen = passes_lepton_cuts(ev, lepton, leptonIndex) and passmetCut and passmtCut and passlepCut
                     fillvar = ev.MET_phi
                 if passDen and fillvar is not None:
                     histos[var + "_den"].Fill(fillvar)
