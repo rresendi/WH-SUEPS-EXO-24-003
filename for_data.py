@@ -30,10 +30,7 @@ refhlt = "HLT_MET120_IsoTrk50"
 if lepton == "Muon":
     inputFiles = sys.argv[6:]
     outputHistos = sys.argv[5] # "muon_efficiencies.root"
-    if data == "data":
-        hlt = ["HLT_IsoMu27", "HLT_Mu50", "HLT_MET120_IsoTrk50"]
-    else:
-        hlt = ["HLT_IsoMu27", "HLT_Mu50"]
+    hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
         "MET": 40,
@@ -54,18 +51,12 @@ if lepton == "Muon":
 else:  # Electron-specific configurations
     inputFiles = sys.argv[6:]
     outputHistos = sys.argv[5] # "electron_efficiencies.root"
-    if data == "data":
-        if era == "2017" or era == "2018":
-            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200", "HLT_MET120_IsoTrk50"]
-        else:
-            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175", "HLT_MET120_IsoTrk50"]
+    if era == "2017" or era == "2018":
+        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
     else:
-        if era == "2017" or era == "2018":
-            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
-        else:
-            hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
+        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
-        "lep1pt": 40,
+        "lep1pt": 30,
         "MET": 40,
         "mT": (30, 130)
     }
@@ -83,6 +74,7 @@ else:  # Electron-specific configurations
     eta_ranges = [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)]
 
 # Load lumi masks and apply them
+
 def load_lumi_mask(file_path):
     with open(file_path, 'r') as f:
         goldenJSONDict = json.load(f)
@@ -103,6 +95,7 @@ def load_lumi_mask(file_path):
     return mask
 
 # Define reference cut function
+
 def passRefCut(ev, era, lumi_mask):
     if not lumi_mask([ev.run], [ev.luminosityBlock])[0]:
         return False
@@ -160,6 +153,7 @@ else:
             histos[var + "_num"] = ROOT.TH1F(var + "_num", var + "_num", histBins[var][0], histBins[var][1], histBins[var][2])
             histos[var + "_den"] = ROOT.TH1F(var + "_den", var + "_den", histBins[var][0], histBins[var][1], histBins[var][2])
 
+
 def passes_lepton_cuts(ev, lepton, leptonIndex):
     if lepton == "Muon":
         return (
@@ -191,6 +185,8 @@ def deltaR(eta1, phi1, eta2, phi2):
     dphi = phi1 - phi2
     dphi = np.arctan2(np.sin(dphi), np.cos(dphi))
     return np.sqrt(deta**2 + dphi**2)
+
+
 
 def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filterBits, lepton_eta, lepton_phi, lepton_type):
     matched = False
@@ -257,6 +253,8 @@ for iFile in inputFiles:
 
         # Check if any HLT path is true early on
         passHLT = any(getattr(ev, hltpath, False) for hltpath in hlt)
+        if data == "data":
+            passHLT = passHLT and getattr(ev, refhlt, False)
         if not passHLT:
             continue
 
@@ -299,16 +297,8 @@ for iFile in inputFiles:
             continue
 
         # Check MET cuts
-        if ev.MET_pt < offlineCuts["MET"]:
-            continue
-        if dPhi(ev.MET_phi, jet_phi) < 1.5:
-            continue
-        
-        # Check mT cuts, only if not plotting as a function of mT
-        dphi = dPhi(lepton_phi, ev.MET_phi)
-        mT = np.sqrt(2 * highest_pt * ev.MET_pt * (1 - np.cos(dphi)))
-        apply_mt_cut = var != "mT"  # Apply mT cut only if we're not plotting as a function of mT
-        if apply_mt_cut and not offlineCuts["mT"][0] < mT < offlineCuts["mT"][1]:
+        dphi_jetmet = dPhi(ev.MET_phi, jet_phi)
+        if dphi_jetmet < 1.5:
             continue
 
         # Match leading lepton to trigger objects
@@ -323,9 +313,9 @@ for iFile in inputFiles:
 
         passmetCut = ev.MET_pt >= offlineCuts["MET"]
         passlepCut = getattr(ev, lepton + "_pt")[leptonIndex] >= offlineCuts["lep1pt"]
-        dphi = ((getattr(ev, lepton + "_phi")[leptonIndex]) - ev.MET_phi)
-        mT = (2 * (getattr(ev, lepton + "_pt")[leptonIndex])  * (ev.MET_pt) * (1 - np.cos(dphi))) ** 0.5
-        passmtCut = 30 < mT  < 130
+        dphi = dPhi(lepton_phi, ev.MET_phi)
+        mT = np.sqrt(2 * highest_pt * ev.MET_pt * (1 - np.cos(dphi)))
+        passmtCut = offlineCuts["mT"][0] < mT < offlineCuts["mT"][1]
 
         # Fill histograms
         if etaOption == "Eta":
@@ -358,7 +348,7 @@ for iFile in inputFiles:
                         passDen = passDen and getattr(ev, refhlt, False)
                     if fillvar is not None:
                         histos[f"{eta_bin}_{var}_den"].Fill(fillvar)
-                        if passHLT and lepton_matched:
+                        if passHLT and lepton_matched and getattr(ev, refhlt, False):
                             histos[f"{eta_bin}_{var}_num"].Fill(fillvar)
 
         else:
@@ -387,7 +377,7 @@ for iFile in inputFiles:
                         passDen = passDen and getattr(ev, refhlt, False)
                     if fillvar is not None:
                         histos[var + "_den"].Fill(fillvar)
-                        if passHLT and lepton_matched:
+                        if passHLT and lepton_matched and getattr(ev, refhlt, False):
                             histos[var + "_num"].Fill(fillvar)
 
     tf.Close()
