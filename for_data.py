@@ -100,9 +100,9 @@ def load_lumi_mask(file_path):
 
 def passRefCut(events, era):
     # Apply lumi mask
-    if era == "2016" or era == "2016APV":
-        LumiJSON = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
-    elif era == "2016apv":
+    if era == "2016":
+        LumiJSON = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_scout.txt")
+    elif era == "2016APV":
         LumiJSON = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016APV_JSON_scout.txt")
     elif era == "2017":
         LumiJSON = load_lumi_mask("/eos/user/r/rresendi/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt")
