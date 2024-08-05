@@ -100,10 +100,6 @@ def passRefCut(ev, era, lumi_mask):
     if not lumi_mask([ev.run], [ev.luminosityBlock])[0]:
         return False
 
-    met_cut = ev.MET_pt > 150
-    if not met_cut:
-        return False
-
     if era in ["2018", "2017"]:
         cutAnyFilter = (
             ev.Flag_goodVertices
@@ -253,8 +249,6 @@ for iFile in inputFiles:
 
         # Check if any HLT path is true early on
         passHLT = any(getattr(ev, hltpath, False) for hltpath in hlt)
-        if data == "data":
-            passHLT = passHLT and getattr(ev, refhlt, False)
         if not passHLT:
             continue
 
