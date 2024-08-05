@@ -208,6 +208,7 @@ def get_eta_bin(eta):
     return None
 
 # Load the lumi mask for the specified era
+
 if data == "data":
     if era == "2016":
         lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_scout.txt")
@@ -241,16 +242,17 @@ for iFile in inputFiles:
         iEv += 1
         if iEv % 1000 == 0:
             print(f"{iEv}/{nEv} events in file processed")
-        if(iEv % 100000 == 0): break
+#        if(iEv % 100000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
             continue
 
         # Check if any HLT path is true early on
-        passHLT = any(getattr(ev, hltpath, False) for hltpath in hlt)
-        if not passHLT:
-            continue
+        passHLT = False
+        for hltpath in hlt:
+            if getattr(ev, hltpath, False): passHLT = True
+
 
         highest_pt = -1
         highest_pt_lepton_index = -1
@@ -347,7 +349,6 @@ for iFile in inputFiles:
                     fillvar = ev.MET_phi
 
                 if passDen:
-                    # Include refHLT in every denominator when data == "data"
                     if passDen and fillvar is not None:
                         histos[f"{eta_bin}_{var}_den"].Fill(fillvar)
                         if passHLT and lepton_matched and getattr(ev, refhlt, False):
@@ -384,7 +385,6 @@ for iFile in inputFiles:
                     fillvar = ev.MET_phi
 
                 if passDen:
-                    # Include refHLT in every denominator when data == "data"
                     if passDen and fillvar is not None:
                         histos[var + "_den"].Fill(fillvar)
                         if passHLT and lepton_matched and getattr(ev, refhlt, False):
@@ -405,3 +405,7 @@ outF = ROOT.TFile(outputHistos, "RECREATE")
 for h in histos:
     histos[h].Write()
 outF.Close()
+
+print("Number of muon events with pT < 27 GeV: ", muon_below27)
+print("Number of electron events with pT < 32 GeV: ", electron_below32)
+print("Processing complete. Output written to %s" % outputHistos)
