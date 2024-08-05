@@ -245,7 +245,7 @@ for iFile in inputFiles:
         iEv += 1
         if iEv % 1000 == 0:
             print(f"{iEv}/{nEv} events in file processed")
-#        if(iEv % 100000 == 0): break
+        if(iEv % 100000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -328,25 +328,33 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = mT
                 elif var == "lep1phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = lepton_phi
                 elif var == "MET phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_phi
 
                 if passDen:
                     # Include refHLT in every denominator when data == "data"
-                    if data == "data":
-                        passDen = passDen and getattr(ev, refhlt, False)
-                    if fillvar is not None:
+                    if passDen and fillvar is not None:
                         histos[f"{eta_bin}_{var}_den"].Fill(fillvar)
                         if passHLT and lepton_matched and getattr(ev, refhlt, False):
                             histos[f"{eta_bin}_{var}_num"].Fill(fillvar)
@@ -357,25 +365,33 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = mT
                 elif var == "lep1phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = lepton_phi
                 elif var == "MET phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
+                    if data == "data":
+                        passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_phi
 
                 if passDen:
                     # Include refHLT in every denominator when data == "data"
-                    if data == "data":
-                        passDen = passDen and getattr(ev, refhlt, False)
-                    if fillvar is not None:
+                    if passDen and fillvar is not None:
                         histos[var + "_den"].Fill(fillvar)
                         if passHLT and lepton_matched and getattr(ev, refhlt, False):
                             histos[var + "_num"].Fill(fillvar)
@@ -395,7 +411,3 @@ outF = ROOT.TFile(outputHistos, "RECREATE")
 for h in histos:
     histos[h].Write()
 outF.Close()
-
-print("Number of muon events with pT < 27 GeV: ", muon_below27)
-print("Number of electron events with pT < 32 GeV: ", electron_below32)
-print("Processing complete. Output written to %s" % outputHistos)
