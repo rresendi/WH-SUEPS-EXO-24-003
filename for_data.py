@@ -24,7 +24,7 @@ lep1pt_bin_edges = array('d', [0, 2, 4, 6, 8, 10, 12,
                           60, 70, 80, 90, 100,
                          120, 140, 160, 180, 200])
 
-refhlt = "HLT_MET120_IsoTrk50"
+refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
 
 # Lepton-specific configurations
 if lepton == "Muon":
