@@ -23,15 +23,38 @@ proxy_path = "/tmp/x509up_u168502"
 files = []
 
 # Set the appropriate path based on the era
-if era == "2016APV":
+if era == "2016APVB":
     mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016B/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016":
+elif era == "2016APVC":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016C/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2016APVD":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016D/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2016APVE":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016E/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2016APVF":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016F/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2016G":
     mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016G/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2017":
+elif era == "2016H":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016H/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2017B":
     mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017B/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2018":
+elif era == "2017C":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017C/MET/MINIAOD/UL2017_MiniAODv2-v1/"
+elif era == "2017D":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017D/MET/MINIAOD/UL2017_MiniAODv2-v1/"
+elif era == "2017E":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017E/MET/MINIAOD/UL2017_MiniAODv2-v1/"
+elif era == "2017F":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017F/MET/MINIAOD/UL2017_MiniAODv2-v1/"
+elif era == "2018A":
     mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018A/MET/MINIAOD/UL2018_MiniAODv2-v1/"
-
+elif era == "2018B":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018B/MET/MINIAOD/UL2018_MiniAODv2-v1/"
+elif era == "2018C":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018C/MET/MINIAOD/UL2018_MiniAODv2-v1/"
+elif era == "2018D":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018D/MET/MINIAOD/UL2018_MiniAODv2-v1/"
 # Populate the list of files from the xrootd server
 for fil in os.listdir(mainfolder):
     if "root" in fil:
