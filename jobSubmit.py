@@ -9,18 +9,33 @@ print('START')
 print()
 ########   YOU ONLY NEED TO FILL THE AREA BELOW   #########
 ########   customization area #########
-interval = 3  # number files to be processed in a single job, take care to split your file so that you run on all files. The last job might be with smaller number of files (the ones that remain).
-queue = "longlunch"
-tag = str(sys.argv[1]) #Muon or Electron
+interval = 1  # number of files to be processed in a single job
+queue = "workday"
+tag = str(sys.argv[1])  # Muon or Electron
 NumberOfJobs = -1
 doSubmit = True
 isdata = sys.argv[2]  # mc or data
-eta = sys.argv[3] # Eta or noEta
-mainfolder = sys.argv[5]  # "WJet_samples"
-output = sys.argv[4]  # "{tag}_efficiencies"
+eta = sys.argv[3]  # Eta or noEta
+era = sys.argv[4]  # 2016, 2016APV, 2017, 2018
+mainfolder = sys.argv[6]  # Placeholder, will be set based on the era
+output = sys.argv[5]  # "{tag}_efficiencies"
+proxy_path = "/tmp/x509up_u168502"
 files = []
 
-for fil in os.listdir(mainfolder):
+# Set the appropriate path based on the era
+if era == "2016APV":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016B/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2016":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016G/MET/MINIAOD/UL2016_MiniAODv2-v1/"
+elif era == "2017":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017B/MET/MINIAOD/UL2017_MiniAODv2-v1/"
+elif era == "2018":
+    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018A/MET/MINIAOD/UL2018_MiniAODv2-v1/"
+
+# Populate the list of files from the xrootd server
+# (In practice, you would get these from a DAS query or similar)
+# For demonstration, I'll assume a function that lists remote files:
+for fil in os.listdir(mainfolder):  # This would be replaced with an appropriate xrootd listing method
     if "root" in fil:
         files.append(os.path.join(mainfolder, fil))
 
@@ -48,14 +63,15 @@ for x in range(1, int(NumberOfJobs) + 1):
         fout.write("echo 'START---------------'\n")
         fout.write("echo 'WORKDIR ' ${PWD}\n")
         fout.write("export HOME=$PWD\n")
+        fout.write("export X509_USER_PROXY=${proxy_path}\n")
         fout.write("source /cvmfs/cms.cern.ch/cmsset_default.sh\n")
         fout.write("cmsrel CMSSW_13_3_3\n")
         fout.write("cd CMSSW_13_3_3/src\n")
         fout.write("cmsenv\n")
         fout.write("cd -\n")
-        fout.write(f"python3 /eos/home-z/zdemirag/forWH/doTriggerEff.py {tag} {isdata} {eta} output_{x}.root {' '.join(jobFiles)}\n")
-        fout.write(f"echo 'cp output_{x}.root /afs/cern.ch/user/r/rresendi/output_{x}.root'\n")
-        fout.write(f"cp output_{x}.root /afs/cern.ch/user/r/rresendi/output_{x}.root\n")
+        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/data.py {tag} {isdata} {eta} {era} output_{x}.root {' '.join(jobFiles)}\n")
+        fout.write(f"echo 'cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root'\n")
+        fout.write(f"cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root\n")
         fout.write("echo 'STOP---------------'\n")
         fout.write("echo\n")
         fout.write("echo\n")
@@ -70,6 +86,7 @@ with open('submit.sub', 'w') as fout:
     fout.write(f"error                   = batchlogs{tag}/$(ClusterId).$(ProcId).err\n")
     fout.write(f"log                     = batchlogs{tag}/$(ClusterId).log\n")
     fout.write(f'+JobFlavour = "{queue}"\n')
+    fout.write(f"x509userproxy = {proxy_path}\n")
     fout.write("\n")
     fout.write(f"queue filename matching (exec{tag}/job_*sh)\n")
 
