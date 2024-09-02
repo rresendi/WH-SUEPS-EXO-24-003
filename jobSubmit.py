@@ -33,8 +33,6 @@ elif era == "2018":
     mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018A/MET/MINIAOD/UL2018_MiniAODv2-v1/"
 
 # Populate the list of files from the xrootd server
-# (In practice, you would get these from a DAS query or similar)
-# For demonstration, I'll assume a function that lists remote files:
 for fil in os.listdir(mainfolder):  # This would be replaced with an appropriate xrootd listing method
     if "root" in fil:
         files.append(os.path.join(mainfolder, fil))
