@@ -9,57 +9,23 @@ print('START')
 print()
 ########   YOU ONLY NEED TO FILL THE AREA BELOW   #########
 ########   customization area #########
-interval = 1  # number of files to be processed in a single job
+interval = 1  # number files to be processed in a single job, take care to split your file so that you run on all files. The last job might be with smaller number of files (the ones that remain).
 queue = "workday"
-tag = str(sys.argv[1])  # Muon or Electron
+tag = str(sys.argv[1]) #Muon or Electron
 NumberOfJobs = -1
 doSubmit = True
 isdata = sys.argv[2]  # mc or data
-eta = sys.argv[3]  # Eta or noEta
-era = sys.argv[4]  # 2016, 2016APV, 2017, 2018
-mainfolder = sys.argv[6]  # Placeholder, will be set based on the era
+eta = sys.argv[3] # Eta or noEta
+era = sys.argv[4] # 2016, 2016APV, 2017, 2018
+file_list = sys.argv[6]
 output = sys.argv[5]  # "{tag}_efficiencies"
-proxy_path = "/tmp/x509up_u168502"
+proxy_path = "/afs/cern.ch/user/r/rresendi/x509up"
 files = []
 
-# Set the appropriate path based on the era
-if era == "2016APVB":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016B/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016APVC":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016C/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016APVD":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016D/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016APVE":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016E/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016APVF":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016F/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016G":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016G/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2016H":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2016H/MET/MINIAOD/UL2016_MiniAODv2-v1/"
-elif era == "2017B":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017B/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2017C":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017C/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2017D":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017D/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2017E":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017E/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2017F":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2017F/MET/MINIAOD/UL2017_MiniAODv2-v1/"
-elif era == "2018A":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018A/MET/MINIAOD/UL2018_MiniAODv2-v1/"
-elif era == "2018B":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018B/MET/MINIAOD/UL2018_MiniAODv2-v1/"
-elif era == "2018C":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018C/MET/MINIAOD/UL2018_MiniAODv2-v1/"
-elif era == "2018D":
-    mainfolder = "root://cms-xrd-global.cern.ch//store/data/Run2018D/MET/MINIAOD/UL2018_MiniAODv2-v1/"
-# Populate the list of files from the xrootd server
-for fil in os.listdir(mainfolder):
-    if "root" in fil:
-        files.append(os.path.join(mainfolder, fil))
-
+with open(file_list, 'r') as f:
+    for line in f:
+        files.append(line.strip())
+        
 ########   customization end   #########
 path = os.getcwd()
 print()
