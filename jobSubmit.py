@@ -19,7 +19,7 @@ eta = sys.argv[3] # Eta or noEta
 era = sys.argv[4] # 2016, 2016APV, 2017, 2018
 file_list = sys.argv[6]
 output = sys.argv[5]  # "{tag}_efficiencies"
-proxy_path = "/afs/cern.ch/user/r/rresendi/x509up"
+proxy_path = "/afs/cern.ch/user/r/rresendi/private/x509up_u168502"
 files = []
 
 with open(file_list, 'r') as f:
