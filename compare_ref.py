@@ -15,5 +15,5 @@ if passDen:
             if data == "data":                                                                                                                                             
                 if getattr(ev, refhlt, False):                                                                                                                             
                     histos[var + "_num"].Fill(fillvar)                                                                                                                     
-                else:                                                                                                                                                          
-                    histos[var + "_num"].Fill(fillvar)          
+            else:                                                                                                                                                          
+                histos[var + "_num"].Fill(fillvar)          
