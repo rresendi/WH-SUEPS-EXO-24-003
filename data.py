@@ -33,7 +33,7 @@ if lepton == "Muon":
     hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
-        "MET": 40,
+        "MET": 150,
         "mT": (30, 130)
     }
 
@@ -57,7 +57,7 @@ else:  # Electron-specific configurations
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
         "lep1pt": 30,
-        "MET": 40,
+        "MET": 150,
         "mT": (30, 130)
     }
 
