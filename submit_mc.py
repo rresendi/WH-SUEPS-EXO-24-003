@@ -54,7 +54,7 @@ for x in range(1, int(NumberOfJobs) + 1):
         fout.write("cd CMSSW_13_3_3/src\n")
         fout.write("cmsenv\n")
         fout.write("cd -\n")
-        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/dphidotrigger.py {tag} {isdata} {eta} {era} output_{x}.root {' '.join(jobFiles)}\n")
+        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/data.py {tag} {isdata} {eta} {era} output_{x}.root {' '.join(jobFiles)}\n")
         fout.write(f"echo 'cp output_{x}.root /afs/cern.ch/user/r/rresendi/output/output_{x}.root'\n")
         fout.write(f"cp output_{x}.root /afs/cern.ch/user/r/rresendi/output/output_{x}.root\n")
         fout.write("echo 'STOP---------------'\n")
