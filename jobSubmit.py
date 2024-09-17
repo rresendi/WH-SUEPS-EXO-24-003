@@ -17,18 +17,14 @@ doSubmit = False
 isdata = sys.argv[2]  # mc or data
 eta = sys.argv[3] # Eta or noEta
 era = sys.argv[4] # 2016, 2016APV, 2017, 2018
-mainfolder = sys.argv[6]
+file_list = sys.argv[6]
 output = sys.argv[5]  # "{tag}_efficiencies"
 proxy_path = "/afs/cern.ch/user/r/rresendi/private/x509up_u168502"
 files = []
 
-with open(mainfolder, 'r') as f:
+with open(file_list, 'r') as f:
     for line in f:
-        file_path = line.strip()
-        if os.path.exists(file_path):
-            files.append(file_path)
-        else:
-            print(f"Warning: {file_path} does not exist!")
+        files.append(line.strip())
         
 ########   customization end   #########
 path = os.getcwd()
