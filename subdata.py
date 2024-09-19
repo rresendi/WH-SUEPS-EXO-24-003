@@ -13,7 +13,7 @@ interval = 1  # number files to be processed in a single job, take care to split
 queue = "workday"
 tag = str(sys.argv[1]) #Muon or Electron
 NumberOfJobs = -1
-doSubmit = False
+doSubmit = True
 isdata = sys.argv[2]  # mc or data
 eta = sys.argv[3] # Eta or noEta
 era = sys.argv[4] # 2016, 2016APV, 2017, 2018
@@ -43,6 +43,9 @@ if NumberOfJobs == -1:
 for x in range(1, int(NumberOfJobs) + 1):
     ##### creates directory and file list for job #######
     jobFiles = files[max(0, (x - 1) * interval):min(x * interval, len(files))]
+    if len(jobFiles) == 0: continue
+    print("jobFiles", jobFiles)
+    filename = jobFiles[0].split('/')[-1]
     with open(f'exec{tag}/job_{x}.sh', 'w') as fout:
         fout.write("#!/bin/sh\n")
         fout.write("echo\n")
@@ -50,13 +53,23 @@ for x in range(1, int(NumberOfJobs) + 1):
         fout.write("echo 'START---------------'\n")
         fout.write("echo 'WORKDIR ' ${PWD}\n")
         fout.write("export HOME=$PWD\n")
-        fout.write("export X509_USER_PROXY=${proxy_path}\n")
+        fout.write("echo $X509_USER_PROXY\n")
+        fout.write(f"echo ls -l ${proxy_path}\n")
+        fout.write(f"ls -l ${proxy_path}\n")
+        #fout.write("export X509_USER_PROXY=${proxy_path}\n")
+        #fout.write("echo $X509_USER_PROXY\n")
         fout.write("source /cvmfs/cms.cern.ch/cmsset_default.sh\n")
         fout.write("cmsrel CMSSW_13_3_3\n")
         fout.write("cd CMSSW_13_3_3/src\n")
         fout.write("cmsenv\n")
         fout.write("cd -\n")
-        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/data.py {tag} {isdata} {eta} {era} output_{x}.root {' '.join(jobFiles)}\n")
+        fout.write("echo voms-proxy-info --file $X509_USER_PROXY\n")
+        fout.write("voms-proxy-info --file $X509_USER_PROXY\n")
+        fout.write("echo voms-proxy-info --path\n")
+        fout.write("voms-proxy-info --path\n")
+        fout.write(f"xrdcp {jobFiles[0]} .\n")
+        fout.write(f"ls {jobFiles[0]} .\n")
+        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/data.py {tag} {isdata} {eta} {era} output_{x}.root {filename}\n")
         fout.write(f"echo 'cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root'\n")
         fout.write(f"cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root\n")
         fout.write("echo 'STOP---------------'\n")
@@ -69,10 +82,11 @@ os.mkdir(f"batchlogs{tag}")
 with open('submit.sub', 'w') as fout:
     fout.write("executable              = $(filename)\n")
     fout.write("arguments               = $(Proxy_path) $(ClusterId)$(ProcId)\n")
-    fout.write(f"output                  = batchlogs{tag}/$(ClusterId).$(ProcId).out\n")
-    fout.write(f"error                   = batchlogs{tag}/$(ClusterId).$(ProcId).err\n")
-    fout.write(f"log                     = batchlogs{tag}/$(ClusterId).log\n")
+    fout.write(f"output                  = batchlogs{output}/$(ClusterId).$(ProcId).out\n")
+    fout.write(f"error                   = batchlogs{output}/$(ClusterId).$(ProcId).err\n")
+    fout.write(f"log                     = batchlogs{output}/$(ClusterId).log\n")
     fout.write(f'+JobFlavour = "{queue}"\n')
+    fout.write(f'use_x509userproxy     = True\n')
     fout.write(f"x509userproxy = {proxy_path}\n")
     fout.write("\n")
     fout.write(f"queue filename matching (exec{tag}/job_*sh)\n")
