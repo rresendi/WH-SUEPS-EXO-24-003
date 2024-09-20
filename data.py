@@ -51,10 +51,12 @@ if lepton == "Muon":
 else:  # Electron-specific configurations
     inputFiles = sys.argv[6:]
     outputHistos = sys.argv[5] # "electron_efficiencies.root"
-    if era == "2017" or era == "2018":
+    if era == "2018":
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+    if era == "2017": 
+        hlt = ["HLT_Ele35_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
     else:
-        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
+        hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
         "lep1pt": 30,
         "MET": 150,
@@ -201,7 +203,7 @@ def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filt
                         matched = True
                         break
             else:
-                if ((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024):
+                if (((trigObj_filterBits[i] & 2) == 2) and ((trigObj_filterBits[i] & 8) == 8)) or ((trigObj_filterBits[i] & 1024) == 1024):
                     dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
                     if dR < 0.1:
                         matched = True
@@ -217,10 +219,8 @@ def get_eta_bin(eta):
 # Load the lumi mask for the specified era
 
 if data == "data":
-    if era == "2016":
-        lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_scout.txt")
-    elif era == "2016APV":
-        lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016APV_JSON_scout.txt")
+    if era in ["2016", "2016APV"]:
+        lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
     elif era == "2017":
         lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt")
     elif era == "2018":
