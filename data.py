@@ -201,7 +201,7 @@ def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filt
                         matched = True
                         break
             else:
-                if (((trigObj_filterBits[i] & 2) == 2) and ((trigObj_filterBits[i] & 8) == 8)) or ((trigObj_filterBits[i] & 1024) == 1024):
+                if ((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024):
                     dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
                     if dR < 0.1:
                         matched = True
