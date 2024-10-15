@@ -33,7 +33,7 @@ if lepton == "Muon":
     hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
-        "MET": 150,
+        "MET": 200,
         "mT": (30, 130)
     }
 
@@ -59,7 +59,7 @@ else:  # Electron-specific configurations
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
         "lep1pt": 30,
-        "MET": 150,
+        "MET": 200,
         "mT": (30, 130)
     }
 
@@ -196,18 +196,11 @@ def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filt
                     matched = True
                     break
         elif lepton_type == "Muon" and abs(trigObj_id[i]) == 13:
-            if era in ["2016", "2016APV"]:
-                if (((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024)):
-                    dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
-                    if dR < 0.1:
-                        matched = True
-                        break
-            else:
-                if (((trigObj_filterBits[i] & 2) == 2) and ((trigObj_filterBits[i] & 8) == 8)) or ((trigObj_filterBits[i] & 1024) == 1024):
-                    dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
-                    if dR < 0.1:
-                        matched = True
-                        break
+            if (((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024)):
+                dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
+                if dR < 0.1:
+                    matched = True
+                    break
     return matched
 
 def get_eta_bin(eta):
@@ -331,7 +324,7 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
@@ -367,7 +360,7 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
