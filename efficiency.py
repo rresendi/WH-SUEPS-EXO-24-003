@@ -33,7 +33,7 @@ if lepton == "Muon":
     hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
-        "MET": 200,
+        "MET": 40,
         "mT": (30, 130)
     }
 
@@ -53,9 +53,9 @@ else:  # Electron-specific configurations
     outputHistos = sys.argv[5] # "electron_efficiencies.root"
     if era == "2018":
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
-    if era == "2017": 
+    elif era == "2017": 
         hlt = ["HLT_Ele35_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
-    else:
+    elif era in ["2016", "2016APV"]:
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
         "lep1pt": 30,
@@ -240,9 +240,9 @@ for iFile in inputFiles:
 
     for ev in events:
         iEv += 1
-        if iEv % 1000 == 0:
-            print(f"{iEv}/{nEv} events in file processed")
-#        if(iEv % 100000 == 0): break
+#        if iEv % 1000 == 0:
+#            print(f"{iEv}/{nEv} events in file processed")
+#        if(iEv % 10000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -360,7 +360,7 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
-                    if data in ["data", "mc"]:
+                    if data in ["data"]: #, "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
@@ -387,7 +387,7 @@ for iFile in inputFiles:
                 if passDen:
                     if passDen and fillvar is not None:
                         histos[var + "_den"].Fill(fillvar)
-                        if passHLT and lepton_matched and getattr(ev, refhlt, False):
+                        if passHLT and lepton_matched: # and getattr(ev, refhlt, False):
                             histos[var + "_num"].Fill(fillvar)
 
     tf.Close()
