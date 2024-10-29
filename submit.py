@@ -66,7 +66,7 @@ for x in range(1, int(NumberOfJobs) + 1):
         fout.write("echo voms-proxy-info --path\n")
         fout.write("voms-proxy-info --path\n")
         fout.write(f"xrdcp {jobFiles[0]} .\n")
-        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/data.py {tag} {isdata} {eta} {era} output_{x}.root {filename}\n")
+        fout.write(f"python3 /afs/cern.ch/user/r/rresendi/efficiency.py {tag} {isdata} {eta} {era} output_{x}.root {filename}\n")
         fout.write(f"echo 'cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root'\n")
         fout.write(f"cp output_{x}.root /afs/cern.ch/user/r/rresendi/{output}/output_{x}.root\n")
         fout.write("echo 'STOP---------------'\n")
