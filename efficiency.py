@@ -272,8 +272,9 @@ for iFile in inputFiles:
         if sample_name in xsec_data:
             cross_section = xsec_data[sample_name]["xsec"]
         else:
-            print(f"Cross section for {sample_name} not found in JSON file.")
-            cross_section = 1.0  # Default to 1 if not found
+            print(f"Cross section for {sample_name} not found in JSON file. Skipping this file.")
+            tf.Close()
+            continue
 
         # Calculate event weight for MC
         event_weight = (cross_section * luminosity) / n_total_events
