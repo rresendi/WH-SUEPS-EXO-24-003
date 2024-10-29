@@ -6,34 +6,57 @@ from array import array
 import json
 
 # Define lepton type
-lepton = sys.argv[1] # Electron or Muon
+lepton = sys.argv[1]  # Electron or Muon
 
-# Data ?
-data = sys.argv[2] # mc or data
+# Data?
+data = sys.argv[2]  # mc or data
 
 # Eta option: Eta or noEta
 etaOption = sys.argv[3]
 
 # Data era
-era = sys.argv[4] # 2016, 2016APV, 2017, 2018
+era = sys.argv[4]  # 2016, 2016APV, 2017, 2018
 
-lep1pt_bin_edges = array('d', [0, 2, 4, 6, 8, 10, 12,
-                             14, 16, 18, 20, 22,
-                            24, 26, 28, 30, 32,
-                           34, 36, 38, 40, 50,
-                          60, 70, 80, 90, 100,
-                         120, 140, 160, 180, 200])
+# Output histograms file
+outputHistos = sys.argv[5]
+
+# Input ROOT files
+inputFiles = sys.argv[6:]
+
+lep1pt_bin_edges = array('d', [
+    0, 2, 4, 6, 8, 10, 12,
+    14, 16, 18, 20, 22,
+    24, 26, 28, 30, 32,
+    34, 36, 38, 40, 50,
+    60, 70, 80, 90, 100,
+    120, 140, 160, 180, 200
+])
 
 refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
 
+# Initialize total number of events and cross-section
+total_events = 0
+cross_section = 0
+
+# Set luminosity based on era (in /pb)
+luminosities = {
+    "2016APV": 19520,  # Pre-VFP 2016
+    "2016": 16810,     # Post-VFP 2016
+    "2017": 41480,
+    "2018": 59830
+}
+
+# Get the luminosity for the specified era
+luminosity = luminosities.get(era, None)
+if luminosity is None:
+    raise ValueError(f"Luminosity for era '{era}' is not defined.")
+
 # Lepton-specific configurations
 if lepton == "Muon":
-    inputFiles = sys.argv[6:]
-    outputHistos = sys.argv[5] # "muon_efficiencies.root"
     hlt = ["HLT_IsoMu27", "HLT_Mu50"]
     offlineCuts = {
         "lep1pt": 40,
-        "MET": 40,
+        "MET": 200,
         "mT": (30, 130)
     }
 
@@ -49,11 +72,9 @@ if lepton == "Muon":
     eta_bins = ["eta1", "eta2", "eta3"]
     eta_ranges = [(0.0, 0.9), (0.9, 2.1), (2.1, 2.4)]
 else:  # Electron-specific configurations
-    inputFiles = sys.argv[6:]
-    outputHistos = sys.argv[5] # "electron_efficiencies.root"
     if era == "2018":
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
-    elif era == "2017": 
+    elif era == "2017":
         hlt = ["HLT_Ele35_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
     elif era in ["2016", "2016APV"]:
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
@@ -75,8 +96,17 @@ else:  # Electron-specific configurations
     eta_bins = ["eta1", "eta2", "eta3"]
     eta_ranges = [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)]
 
-# Load lumi masks and apply them
+# Load cross-section JSON file
+def load_cross_sections(file_path):
+    with open(file_path, 'r') as f:
+        cross_section_data = json.load(f)
+    return cross_section_data
 
+if data == "mc":
+    xsec_json_file = f"/eos/user/r/rresendi/cross_sections_{era}.json"
+    xsec_data = load_cross_sections(xsec_json_file)
+
+# Load lumi masks and apply them
 def load_lumi_mask(file_path):
     with open(file_path, 'r') as f:
         goldenJSONDict = json.load(f)
@@ -97,7 +127,6 @@ def load_lumi_mask(file_path):
     return mask
 
 # Define reference cut function
-
 def passRefCut(ev, era, lumi_mask):
     if not lumi_mask([ev.run], [ev.luminosityBlock])[0]:
         return False
@@ -151,7 +180,6 @@ else:
             histos[var + "_num"] = ROOT.TH1F(var + "_num", var + "_num", histBins[var][0], histBins[var][1], histBins[var][2])
             histos[var + "_den"] = ROOT.TH1F(var + "_den", var + "_den", histBins[var][0], histBins[var][1], histBins[var][2])
 
-
 def passes_lepton_cuts(ev, lepton, leptonIndex):
     if lepton == "Muon":
         return (
@@ -184,8 +212,6 @@ def deltaR(eta1, phi1, eta2, phi2):
     dphi = np.arctan2(np.sin(dphi), np.cos(dphi))
     return np.sqrt(deta**2 + dphi**2)
 
-
-
 def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filterBits, lepton_eta, lepton_phi, lepton_type):
     matched = False
     for i in range(len(trigObj_id)):
@@ -209,8 +235,6 @@ def get_eta_bin(eta):
             return eta_bins[i]
     return None
 
-# Load the lumi mask for the specified era
-
 if data == "data":
     if era in ["2016", "2016APV"]:
         lumi_mask_func = load_lumi_mask("/eos/user/r/rresendi/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt")
@@ -221,7 +245,7 @@ if data == "data":
     else:
         raise ValueError("No era is defined. Please specify the year")
 
-print("Starting %s" % inputFiles)
+print("Starting processing of input files")
 
 inF = 0
 nF = len(inputFiles)
@@ -232,6 +256,28 @@ for iFile in inputFiles:
     tf = ROOT.TFile(iFile, "READ")
     events = tf.Get("Events")
 
+    # Initialize event weight
+    event_weight = 1.0
+
+    if data == "mc":
+        # Get total number of events in the sample
+        hist_events = tf.Get("nEventsGenWeighted")
+        if hist_events:
+            n_total_events = hist_events.GetBinContent(1)
+        else:
+            n_total_events = events.GetEntries()
+
+        # Extract sample name from file path to get cross-section
+        sample_name = os.path.basename(iFile).split('.')[0]
+        if sample_name in xsec_data:
+            cross_section = xsec_data[sample_name]["xsec"]
+        else:
+            print(f"Cross section for {sample_name} not found in JSON file.")
+            cross_section = 1.0  # Default to 1 if not found
+
+        # Calculate event weight for MC
+        event_weight = (cross_section * luminosity) / n_total_events
+
     iEv = 0
     nEv = events.GetEntries()
 
@@ -240,9 +286,6 @@ for iFile in inputFiles:
 
     for ev in events:
         iEv += 1
-#        if iEv % 1000 == 0:
-#            print(f"{iEv}/{nEv} events in file processed")
-#        if(iEv % 10000 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -251,8 +294,8 @@ for iFile in inputFiles:
         # Check if any HLT path is true early on
         passHLT = False
         for hltpath in hlt:
-            if getattr(ev, hltpath, False): passHLT = True
-
+            if getattr(ev, hltpath, False):
+                passHLT = True
 
         highest_pt = -1
         highest_pt_lepton_index = -1
@@ -306,9 +349,8 @@ for iFile in inputFiles:
             electron_below32 += 1
 
         # Variables you want to study
-
         passmetCut = ev.MET_pt >= offlineCuts["MET"]
-        passlepCut = getattr(ev, lepton + "_pt")[leptonIndex] >= offlineCuts["lep1pt"]
+        passlepCut = getattr(ev, lepton + "_pt")[highest_pt_lepton_index] >= offlineCuts["lep1pt"]
         dphi = dPhi(lepton_phi, ev.MET_phi)
         mT = np.sqrt(2 * highest_pt * ev.MET_pt * (1 - np.cos(dphi)))
         passmtCut = offlineCuts["mT"][0] < mT < offlineCuts["mT"][1]
@@ -329,30 +371,29 @@ for iFile in inputFiles:
                     fillvar = highest_pt
                 elif var == "MET":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = mT
-                elif var == "lep1phi":
+                elif var in ["data", "mc"]:
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = lepton_phi
-                elif var == "MET phi":
+                elif var in ["data", "mc"]:
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_phi
 
-                if passDen:
-                    if passDen and fillvar is not None:
-                        histos[f"{eta_bin}_{var}_den"].Fill(fillvar)
-                        if passHLT and lepton_matched and getattr(ev, refhlt, False):
-                            histos[f"{eta_bin}_{var}_num"].Fill(fillvar)
+                if passDen and fillvar is not None:
+                    histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
+                    if passHLT and lepton_matched and getattr(ev, refhlt, False):
+                        histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
 
         else:
             for var in histBins:
@@ -360,35 +401,34 @@ for iFile in inputFiles:
                 fillvar = None
                 if var == "lep1pt":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut
-                    if data in ["data"]: #, "mc"]:
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = highest_pt
                 elif var == "MET":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmtCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_pt
                 elif var == "mT":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passlepCut and passmetCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = mT
                 elif var == "lep1phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = lepton_phi
                 elif var == "MET phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
-                    if data == "data":
+                    if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = ev.MET_phi
 
-                if passDen:
-                    if passDen and fillvar is not None:
-                        histos[var + "_den"].Fill(fillvar)
-                        if passHLT and lepton_matched: # and getattr(ev, refhlt, False):
-                            histos[var + "_num"].Fill(fillvar)
+                if passDen and fillvar is not None:
+                    histos[var + "_den"].Fill(fillvar, event_weight)
+                    if passHLT and lepton_matched and getattr(ev, refhlt, False):
+                        histos[var + "_num"].Fill(fillvar, event_weight)
 
     tf.Close()
 
