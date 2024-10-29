@@ -253,8 +253,15 @@ nF = len(inputFiles)
 for iFile in inputFiles:
     inF += 1
     print(f"Starting file {inF}/{nF}, {iFile}")
-    tf = ROOT.TFile(iFile, "READ")
+    tf = ROOT.TFile.Open(iFile, "READ")
+    if not tf or tf.IsZombie():
+        print(f"Error opening file {iFile}. Skipping.")
+        continue
     events = tf.Get("Events")
+    if not events:
+        print(f"No 'Events' tree found in {iFile}. Skipping.")
+        tf.Close()
+        continue
 
     # Initialize event weight
     event_weight = 1.0
@@ -268,9 +275,27 @@ for iFile in inputFiles:
             n_total_events = events.GetEntries()
 
         # Extract sample name from file path to get cross-section
-        sample_name = os.path.basename(iFile).split('.')[0]
-        if sample_name in xsec_data:
-            cross_section = xsec_data[sample_name]["xsec"]
+        path_parts = iFile.split('/')
+        if 'mc' in path_parts:
+            idx = path_parts.index('mc')
+            if idx + 2 < len(path_parts):
+                sample_name = path_parts[idx + 2]
+            else:
+                print(f"Could not determine sample name from file path: {iFile}")
+                tf.Close()
+                continue
+        else:
+            print(f"'mc' not found in file path: {iFile}")
+            tf.Close()
+            continue
+
+        # Try to find a matching key in xsec_data
+        matching_keys = [key for key in xsec_data if sample_name in key]
+
+        if matching_keys:
+            matching_key = matching_keys[0]
+            cross_section = xsec_data[matching_key]["xsec"]
+            print(f"Using cross section {cross_section} for sample '{sample_name}' matched with key '{matching_key}'")
         else:
             print(f"Cross section for {sample_name} not found in JSON file. Skipping this file.")
             tf.Close()
