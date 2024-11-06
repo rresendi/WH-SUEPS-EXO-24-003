@@ -75,7 +75,7 @@ else:  # Electron-specific configurations
     if era == "2018":
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
     elif era == "2017":
-        hlt = ["HLT_Ele35_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+        hlt = ["HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
     elif era in ["2016", "2016APV"]:
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
@@ -97,6 +97,7 @@ else:  # Electron-specific configurations
     eta_ranges = [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)]
 
 # Load cross-section JSON file
+localFiles = [os.path.basename(f) for f in inputFiles]
 def load_cross_sections(file_path):
     with open(file_path, 'r') as f:
         cross_section_data = json.load(f)
@@ -216,11 +217,18 @@ def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filt
     matched = False
     for i in range(len(trigObj_id)):
         if lepton_type == "Electron" and abs(trigObj_id[i]) == 11:
-            if ((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 2048) == 2048) or ((trigObj_filterBits[i] & 8192) == 8192):
-                dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
-                if dR < 0.1:
-                    matched = True
-                    break
+            if era == "2017":
+                if ((trigObj_filterBits[i] & 1024) == 1024):
+                    dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
+                    if dR < 0.1:
+                        matched = True
+                        break
+                else:
+                    if ((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 2048) == 2048) or ((trigObj_filterBits[i] & 8192) == 8192):
+                        dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
+                        if dR < 0.1:
+                            matched = True
+                            break
         elif lepton_type == "Muon" and abs(trigObj_id[i]) == 13:
             if (((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024)):
                 dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
@@ -250,7 +258,7 @@ print("Starting processing of input files")
 inF = 0
 nF = len(inputFiles)
 
-for iFile in inputFiles:
+for i, iFile in enumerate(localFiles):
     inF += 1
     print(f"Starting file {inF}/{nF}, {iFile}")
     tf = ROOT.TFile.Open(iFile, "READ")
@@ -274,18 +282,21 @@ for iFile in inputFiles:
         else:
             n_total_events = events.GetEntries()
 
-        # Extract sample name from file path to get cross-section
-        path_parts = iFile.split('/')
+        # Extract sample name from the original file path
+        original_file_path = inputFiles[i]
+        path_parts = original_file_path.split('/')
+        sample_name = None
         if 'mc' in path_parts:
             idx = path_parts.index('mc')
             if idx + 2 < len(path_parts):
                 sample_name = path_parts[idx + 2]
+                print(f"Sample name extracted from path: {sample_name}")
             else:
-                print(f"Could not determine sample name from file path: {iFile}")
+                print(f"Could not determine sample name from file path: {original_file_path}")
                 tf.Close()
                 continue
         else:
-            print(f"'mc' not found in file path: {iFile}")
+            print(f"'mc' not found in file path: {original_file_path}")
             tf.Close()
             continue
 
@@ -312,6 +323,7 @@ for iFile in inputFiles:
 
     for ev in events:
         iEv += 1
+#        if(iEv % 10 == 0): break
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -452,9 +464,9 @@ for iFile in inputFiles:
                     fillvar = ev.MET_phi
 
                 if passDen and fillvar is not None:
-                    histos[var + "_den"].Fill(fillvar, event_weight)
+                    histos[var + "_den"].Fill(fillvar) # , event_weight)
                     if passHLT and lepton_matched and getattr(ev, refhlt, False):
-                        histos[var + "_num"].Fill(fillvar, event_weight)
+                        histos[var + "_num"].Fill(fillvar) #, event_weight)
 
     tf.Close()
 
@@ -472,6 +484,4 @@ for h in histos:
     histos[h].Write()
 outF.Close()
 
-print("Number of muon events with pT < 27 GeV: ", muon_below27)
-print("Number of electron events with pT < 32 GeV: ", electron_below32)
 print("Processing complete. Output written to %s" % outputHistos)
