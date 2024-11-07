@@ -272,7 +272,7 @@ for i, iFile in enumerate(localFiles):
         continue
 
     # Initialize event weight
-    event_weight = 0
+    event_weight = 1.0
 
     if data == "mc":
         # Get total number of events in the sample
