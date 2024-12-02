@@ -417,12 +417,12 @@ for i, iFile in enumerate(localFiles):
                     if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = mT
-                elif var in ["data", "mc"]:
+                elif var == "lep1phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
                     fillvar = lepton_phi
-                elif var in ["data", "mc"]:
+                elif var == "MET phi":
                     passDen = passes_lepton_cuts(ev, lepton, highest_pt_lepton_index) and passmetCut and passmtCut and passlepCut
                     if data in ["data", "mc"]:
                         passDen = passDen and getattr(ev, refhlt, False)
@@ -470,13 +470,41 @@ for i, iFile in enumerate(localFiles):
 
     tf.Close()
 
+# Now calculate efficiencies and adjust the event weights
+print("Calculating efficiencies and adjusting histogram contents")
+
+if etaOption == "Eta":
+    for var in histBins:
+        for eta_bin in eta_bins:
+            num_hist = histos[f"{eta_bin}_{var}_num"]
+            den_hist = histos[f"{eta_bin}_{var}_den"]
+            eff_hist = num_hist.Clone(f"{eta_bin}_{var}_eff")
+            eff_hist.Divide(den_hist)
+            # Now adjust the denominator histogram by multiplying by the efficiency
+            for bin_idx in range(1, den_hist.GetNbinsX() + 1):
+                efficiency = eff_hist.GetBinContent(bin_idx)
+                original_content = den_hist.GetBinContent(bin_idx)
+                den_hist.SetBinContent(bin_idx, original_content * efficiency)
+else:
+    for var in histBins:
+        num_hist = histos[var + "_num"]
+        den_hist = histos[var + "_den"]
+        eff_hist = num_hist.Clone(var + "_eff")
+        eff_hist.Divide(den_hist)
+        # Now adjust the denominator histogram by multiplying by the efficiency
+        for bin_idx in range(1, den_hist.GetNbinsX() + 1):
+            efficiency = eff_hist.GetBinContent(bin_idx)
+            original_content = den_hist.GetBinContent(bin_idx)
+            den_hist.SetBinContent(bin_idx, original_content * efficiency)
+
+# Now the histograms have been adjusted by the efficiencies
 for var in histBins:
     if etaOption == "Eta":
         for eta_bin in eta_bins:
-            print(f"Number of events in the denominator for {eta_bin}_{var}: {histos[f'{eta_bin}_{var}_den'].GetEntries()}")
+            print(f"Number of events in the adjusted denominator for {eta_bin}_{var}: {histos[f'{eta_bin}_{var}_den'].GetEntries()}")
             print(f"Number of events passing in the numerator for {eta_bin}_{var}: {histos[f'{eta_bin}_{var}_num'].GetEntries()}")
     else:
-        print(f"Number of events in the denominator for {var}: {histos[var + '_den'].GetEntries()}")
+        print(f"Number of events in the adjusted denominator for {var}: {histos[var + '_den'].GetEntries()}")
         print(f"Number of events passing in the numerator for {var}: {histos[var + '_num'].GetEntries()}")
 
 outF = ROOT.TFile(outputHistos, "RECREATE")
