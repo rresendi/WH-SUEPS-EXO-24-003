@@ -73,9 +73,9 @@ if lepton == "Muon":
     eta_ranges = [(0.0, 0.9), (0.9, 2.1), (2.1, 2.4)]
 else:
     if era == "2018":
-        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+        hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era == "2017":
-        hlt = ["HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon200"]
+        hlt = ["HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era in ["2016", "2016APV"]:
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
