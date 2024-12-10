@@ -83,7 +83,8 @@ else:
     offlineCuts = {
         "lep1pt": 30,
         "MET": 200,
-        "mT": (30, 130)
+        "mT": (30, 130),
+        "Boson pT": 60
     }
 
     histBins = {
@@ -91,7 +92,8 @@ else:
         "MET": [30, 0, 300],
         "mT": [15, 0, 150],
         "lep1phi": [35, 0, 3.5],
-        "MET phi": [35, 0, 3.5]
+        "MET phi": [35, 0, 3.5],
+        "Boson pT": lep1pt_bin_edges
     }
 
     pt_label = "Electron pT [GeV]"
