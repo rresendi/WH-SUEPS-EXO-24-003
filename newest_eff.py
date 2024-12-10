@@ -79,7 +79,7 @@ else:
     elif era == "2017":
         hlt = ["HLT_Ele32_WPTight_L1DoubleEG", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era in ["2016", "2016APV"]:
-        hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
+        hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     offlineCuts = {
         "lep1pt": 30,
         "MET": 200,
@@ -351,17 +351,17 @@ for i, iFile in enumerate(inputFiles):
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
             continue
-
-        # Early filter for 2017 electrons
-        if not filter_events_2017_electrons(ev):
-            continue
-  
+            
         # Check if any HLT path is true early on
         passHLT = False
         for hltpath in hlt:
             if getattr(ev, hltpath, False):
                 passHLT = True
 
+        # Early filter for 2017 electrons
+        if not filter_events_2017_electrons(ev):
+            continue
+  
         highest_pt = -1
         highest_pt_lepton_index = -1
 
