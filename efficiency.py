@@ -61,7 +61,7 @@ if lepton == "Muon":
         "lep1pt": 40,
         "MET": 200,
         "mT": (30, 130),
-        "Boson pT": 60
+        "Boson pT": 200
     }
 
     histBins = {
@@ -87,7 +87,7 @@ else:
         "lep1pt": 30,
         "MET": 200,
         "mT": (30, 130),
-        "Boson pT": 60
+        "Boson pT": 200
     }
 
     histBins = {
@@ -423,9 +423,9 @@ for i, iFile in enumerate(inputFiles):
                     if passDen and fillvar is not None:
                         histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
 
-                    # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
-                    if passHLT and lepton_matched:
-                        histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
+                        # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
+                        if passHLT and lepton_matched:
+                            histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
 
         else:
             for var in histBins:
@@ -455,9 +455,9 @@ for i, iFile in enumerate(inputFiles):
                     if passDen and fillvar is not None:
                         histos[var + "_den"].Fill(fillvar, event_weight)
 
-                    # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
-                    if passHLT and lepton_matched:
-                        histos[var + "_num"].Fill(fillvar, event_weight)
+                        # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
+                        if passHLT and lepton_matched:
+                            histos[var + "_num"].Fill(fillvar, event_weight)
                         
     tf.Close()
 
