@@ -32,13 +32,16 @@ lep1pt_bin_edges = array('d', [
     120, 140, 160, 180, 200
 ])
 
-refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
+if data == "data":
+    refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
+else:
+    refhlt = True
 
 # Initialize total number of events and cross-section
 total_events = 0
 cross_section = 0
 
-# Set luminosity based on era (in /pb)
+# Set luminosity based on era
 luminosities = {
     "2016APV": 19520,
     "2016": 16810,
@@ -67,7 +70,7 @@ if lepton == "Muon":
         "mT": [15, 0, 150],
         "lep1phi": [35, 0, 3.5],
         "MET phi": [35, 0, 3.5],
-        "Boson pT": lep1pt_bin_edges
+        "Boson pT": [80, 0, 800]
     }
 
     pt_label = "Muon pT [GeV]"
@@ -79,7 +82,7 @@ else:
     elif era == "2017":
         hlt = ["HLT_Ele32_WPTight_L1DoubleEG", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era in ["2016", "2016APV"]:
-        hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
+        hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
     offlineCuts = {
         "lep1pt": 30,
         "MET": 200,
@@ -93,7 +96,7 @@ else:
         "mT": [15, 0, 150],
         "lep1phi": [35, 0, 3.5],
         "MET phi": [35, 0, 3.5],
-        "Boson pT": lep1pt_bin_edges
+        "Boson pT": [40, 0, 400]
     }
 
     pt_label = "Electron pT [GeV]"
@@ -177,7 +180,7 @@ if etaOption == "Eta":
 else:
     for var in histBins:
         x_label = pt_label if var == "lep1pt" else var
-        if var in ["lep1pt", "Boson pT"]:
+        if var == "lep1pt":
             histos[var + "_num"] = ROOT.TH1F(var + "_num", var + "_num", len(histBins[var]) - 1, lep1pt_bin_edges)
             histos[var + "_den"] = ROOT.TH1F(var + "_den", var + "_den", len(histBins[var]) - 1, lep1pt_bin_edges)
         else:
@@ -216,45 +219,15 @@ def deltaR(eta1, phi1, eta2, phi2):
     dphi = np.arctan2(np.sin(dphi), np.cos(dphi))
     return np.sqrt(deta**2 + dphi**2)
 
-def filter_events_2017_electrons(ev, trigger_filter_bit=1024, max_delta_r=0.1):
-    if era != "2017" or lepton != "Electron":
-        return True  # Only apply this filter for 2017 electrons
-
-    trig_obj_mask = (ev.TrigObj_id == 11) & ((ev.TrigObj_filterBits & trigger_filter_bit) == trigger_filter_bit)
-    
-    for ele_idx in range(ev.nElectron):
-        for trig_idx in range(ev.nTrigObj):
-            if not trig_obj_mask[trig_idx]:
-                continue
-            dR = deltaR(ev.Electron_eta[ele_idx], ev.Electron_phi[ele_idx],
-                        ev.TrigObj_eta[trig_idx], ev.TrigObj_phi[trig_idx])
-            if dR < max_delta_r:
-                return True
-    return False
-
-def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filterBits, lepton_eta, lepton_phi, lepton_type, year = None, filter_bit = None):
+def is_leading_lepton_matched(trigObj_eta, trigObj_phi, trigObj_id, trigObj_filterBits, lepton_eta, lepton_phi, lepton_type):
     matched = False
     for i in range(len(trigObj_id)):
         if lepton_type == "Electron" and abs(trigObj_id[i]) == 11:
-            # Use year-dependent filter bits
-            year_specific_filters = {
-                "2016": [2, 2048],
-                "2017": [1024],
-                "2018": [2, 8192],
-            }
-            filters_to_check = year_specific_filters.get(year, [2, 2048, 8192])
-
-            # Override with specific filter_bit if provided
-            if filter_bit is not None:
-                filters_to_check = [filter_bit]
-
-            # Check filters
-            if any((trigObj_filterBits[i] & fb) == fb for fb in filters_to_check):
+            if ((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 2048) == 2048) or ((trigObj_filterBits[i] & 8192) == 8192):
                 dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
                 if dR < 0.1:
                     matched = True
                     break
-
         elif lepton_type == "Muon" and abs(trigObj_id[i]) == 13:
             if (((trigObj_filterBits[i] & 2) == 2) or ((trigObj_filterBits[i] & 1024) == 1024)):
                 dR = deltaR(lepton_eta, lepton_phi, trigObj_eta[i], trigObj_phi[i])
@@ -351,17 +324,13 @@ for i, iFile in enumerate(inputFiles):
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
             continue
-            
+
         # Check if any HLT path is true early on
         passHLT = False
         for hltpath in hlt:
             if getattr(ev, hltpath, False):
                 passHLT = True
 
-        # Early filter for 2017 electrons
-        if not filter_events_2017_electrons(ev):
-            continue
-  
         highest_pt = -1
         highest_pt_lepton_index = -1
 
@@ -406,11 +375,7 @@ for i, iFile in enumerate(inputFiles):
             continue
 
         # Match leading lepton to trigger objects
-        # Special handling for 2017 electrons with filter bit 1024
-        if era == "2017" and lepton == "Electron":
-            lepton_matched = is_leading_lepton_matched(ev.TrigObj_eta, ev.TrigObj_phi, ev.TrigObj_id, ev.TrigObj_filterBits, lepton_eta, lepton_phi, lepton_type = "Electron", filter_bit = 1024)
-        else:
-            lepton_matched = is_leading_lepton_matched(ev.TrigObj_eta, ev.TrigObj_phi, ev.TrigObj_id, ev.TrigObj_filterBits, lepton_eta, lepton_phi, lepton_type = lepton)
+        lepton_matched = is_leading_lepton_matched(ev.TrigObj_eta, ev.TrigObj_phi, ev.TrigObj_id, ev.TrigObj_filterBits, lepton_eta, lepton_phi, lepton)
 
         # Calculate boson pT
         boson_ptx = getattr(ev, lepton + "_pt")[highest_pt_lepton_index] * np.cos(lepton_phi) + ev.MET_pt * np.cos(ev.MET_phi)
@@ -454,13 +419,13 @@ for i, iFile in enumerate(inputFiles):
                     fillvar = boson_pt
 
                 # Fill denominator histogram with weight
-                if passDen and fillvar is not None:
-                    histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
+                if getattr(ev, refhlt, False):
+                    if passDen and fillvar is not None:
+                        histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
 
                     # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
-                    if getattr(ev, refhlt, False):
-                        if passHLT and lepton_matched:
-                            histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
+                    if passHLT and lepton_matched:
+                        histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
 
         else:
             for var in histBins:
@@ -486,14 +451,14 @@ for i, iFile in enumerate(inputFiles):
                     fillvar = boson_pt
 
                 # Fill denominator histogram with weight
-                if passDen and fillvar is not None:
-                    histos[var + "_den"].Fill(fillvar, event_weight)
+                if getattr(ev, refhlt, False):
+                    if passDen and fillvar is not None:
+                        histos[var + "_den"].Fill(fillvar, event_weight)
 
                     # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
-                    if getattr(ev, refhlt, False):
-                        if passHLT and lepton_matched:
-                            histos[var + "_num"].Fill(fillvar, event_weight)
-
+                    if passHLT and lepton_matched:
+                        histos[var + "_num"].Fill(fillvar, event_weight)
+                        
     tf.Close()
 
 # Now calculate efficiencies and adjust the event weights
