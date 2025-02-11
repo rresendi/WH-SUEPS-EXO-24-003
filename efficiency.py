@@ -32,10 +32,8 @@ lep1pt_bin_edges = array('d', [
     120, 140, 160, 180, 200
 ])
 
-if data == "data":
-    refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
-else:
-    refhlt = True
+
+refhlt = "HLT_PFMETNoMu120_PFMHTNoMu120_IDTight"
 
 # Initialize total number of events and cross-section
 total_events = 0
@@ -57,12 +55,21 @@ if luminosity is None:
 # Lepton-specific configurations
 if lepton == "Muon":
     hlt = ["HLT_IsoMu27", "HLT_Mu50"]
-    offlineCuts = {
-        "lep1pt": 40,
-        "MET": 200,
-        "mT": (30, 130),
-        "Boson pT": 200
-    }
+    if data == "data":
+        offlineCuts = {
+            "lep1pt": 40,
+            "MET": 200,
+            "mT": (30, 130),
+            "Boson pT": 200
+        }
+    
+    else:
+        offlineCuts = {
+            "lep1pt": 40,
+            "MET": 30,
+            "mT": (30, 130),
+            "Boson pT": 200
+        }
 
     histBins = {
         "lep1pt": lep1pt_bin_edges,
@@ -80,15 +87,25 @@ else:
     if era == "2018":
         hlt = ["HLT_Ele32_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era == "2017":
-        hlt = ["HLT_Ele32_WPTight_L1DoubleEG", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
+        hlt = ["HLT_Ele35_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT"]
     elif era in ["2016", "2016APV"]:
         hlt = ["HLT_Ele27_WPTight_Gsf", "HLT_Ele115_CaloIdVT_GsfTrkIdT", "HLT_Photon175"]
-    offlineCuts = {
-        "lep1pt": 30,
-        "MET": 200,
-        "mT": (30, 130),
-        "Boson pT": 200
-    }
+
+    if data == "data":
+        offlineCuts = {
+            "lep1pt": 30,
+            "MET": 200,
+            "mT": (30, 130),
+            "Boson pT": 200
+        }
+    
+    else:
+        offlineCuts = {
+            "lep1pt": 30,
+            "MET": 30,
+            "mT": (30, 130),
+            "Boson pT": 200
+        }
 
     histBins = {
         "lep1pt": lep1pt_bin_edges,
@@ -282,16 +299,18 @@ for i, iFile in enumerate(inputFiles):
             n_total_events = events.GetEntries()
 
         # Extract sample name from the original file path
-        original_file_path = inputFiles[i]
-        path_parts = original_file_path.split('/')
-        sample_name = None
-        if 'mc' in path_parts:
-            idx = path_parts.index('mc')
-            if idx + 2 < len(path_parts):
-                sample_name = path_parts[idx + 2]
-                print(f"Sample name extracted from path: {sample_name}")
-            else:
-                print(f"Could not determine sample name from file path: {original_file_path}")
+        original_file_path = tf.GetName()
+        print(f"Full file path from ROOT: {original_file_path}")  # Debugging print
+
+        if '/mc/' in original_file_path.lower():
+            path_parts = original_file_path.split('/')
+            try:
+                idx = path_parts.index('mc')
+                sample_name = path_parts[idx + 2]  # Extract sample name
+                print(f"Sample name extracted: {sample_name}")
+            
+            except (ValueError, IndexError):
+                print(f"Could not determine sample name from: {original_file_path}")
                 tf.Close()
                 continue
         else:
@@ -313,13 +332,17 @@ for i, iFile in enumerate(inputFiles):
 
         # Calculate event weight for MC
         event_weight = (cross_section * luminosity) / n_total_events
+        print(f'event weight: {event_weight}')
 
     iEv = 0
     nEv = events.GetEntries()
 
+    print(f'events have been counted. there are {nEv} events in this file')
+    import time
     for ev in events:
         iEv += 1
-#       if(iEv % 10 == 0): break
+        # if(iEv % 10 == 0):
+        #     print(iEv, nEv, time.time())
 
         # Apply reference cuts for data early
         if data == "data" and not passRefCut(ev, era, lumi_mask_func):
@@ -419,7 +442,15 @@ for i, iFile in enumerate(inputFiles):
                     fillvar = boson_pt
 
                 # Fill denominator histogram with weight
-                if getattr(ev, refhlt, False):
+                if data == "data":
+                    if getattr(ev, refhlt, False):
+                        if passDen and fillvar is not None:
+                            histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
+
+                            # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
+                            if passHLT and lepton_matched:
+                                histos[f"{eta_bin}_{var}_num"].Fill(fillvar, event_weight)
+                else:
                     if passDen and fillvar is not None:
                         histos[f"{eta_bin}_{var}_den"].Fill(fillvar, event_weight)
 
@@ -451,13 +482,22 @@ for i, iFile in enumerate(inputFiles):
                     fillvar = boson_pt
 
                 # Fill denominator histogram with weight
-                if getattr(ev, refhlt, False):
-                    if passDen and fillvar is not None:
-                        histos[var + "_den"].Fill(fillvar, event_weight)
+                if data == "data":
+                    if getattr(ev, refhlt, False):
+                        if passDen and fillvar is not None:
+                            histos[var + "_den"].Fill(fillvar, event_weight)
 
-                        # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
-                        if passHLT and lepton_matched:
-                            histos[var + "_num"].Fill(fillvar, event_weight)
+                            # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
+                            if passHLT and lepton_matched:
+                                histos[var + "_num"].Fill(fillvar, event_weight)
+                
+                else:
+                    if passDen and fillvar is not None:
+                            histos[var + "_den"].Fill(fillvar, event_weight)
+
+                            # Fill numerator histogram based on HLT or lepton matching criteria, apply weight
+                            if passHLT and lepton_matched:
+                                histos[var + "_num"].Fill(fillvar, event_weight)
                         
     tf.Close()
 
