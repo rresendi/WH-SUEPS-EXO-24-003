@@ -7,19 +7,18 @@ from array import array
 
 # System Arguments
 lepton = sys.argv[1]
-isdata = sys.argv[2]
-eta = sys.argv[3]
-output = sys.argv[4]
-data_dir = sys.argv[5]
-mc_dir = sys.argv[6]
+eta = sys.argv[2]
+output = sys.argv[3]
+data_dir = sys.argv[4]
+mc_dir = sys.argv[5]
 
 # Set labels based on the lepton type
-if "muon" in lepton.lower():
-    pt_label = "Muon p_{T} [GeV]"
-    phi_label = "Muon #phi"
+if lepton == "Muon":
+    pt_label = "p_{T}^{#mu} [GeV]"
+    phi_label = "#phi^{#mu}"
 else:
-    pt_label = "Electron p_{T} [GeV]"
-    phi_label = "Electron #phi"
+    pt_label = "p_{T}^{e} [GeV]"
+    phi_label = "#phi^{e}"
 
 # Define bin edges for 'lep1pt' as a regular list
 lep1pt_bin_edges = array('d', [
@@ -49,20 +48,21 @@ CMS_lumi.writeExtraText = True
 CMS_lumi.extraText = "Preliminary"
 CMS_lumi.lumi_13TeV = "36.31 fb^{-1}"
 CMS_lumi.lumi_sqrtS = "13 TeV"  # Used with iPeriod = 0
+CMS_lumi.extraOverCmsTextSize = 0.8  # Adjust spacing between "CMS" and "Preliminary"
 
 iPos = 0
 if iPos == 0:
     CMS_lumi.relPosX = 0.13
 
-H_ref = 600
-W_ref = 800
+H_ref = 700  # Decreased height for better overall size
+W_ref = 600  # Decreased width for better overall size
 W = W_ref
 H = H_ref
 
 # Define the period for lumi
 iPeriod = 0  # 13 TeV only
 
-# loading and combining histograms from all ROOT files in a directory
+# Loading and combining histograms from all ROOT files in a directory
 def get_combined_histogram(directory, hist_name):
     combined_hist = None
     for filename in os.listdir(directory):
@@ -114,18 +114,20 @@ for var in variables:
     data_eff = ROOT.TEfficiency(data_num_hist, data_den_hist)
     mc_eff = ROOT.TEfficiency(mc_num_hist, mc_den_hist)
 
-    # Create canvas
+    # Create main canvas with sub-pads
     c = ROOT.TCanvas(var + "_c", var + "_c", W, H)
-    c.SetFillColor(0)
-    c.SetBorderMode(0)
-    c.SetFrameFillStyle(0)
-    c.SetFrameBorderMode(0)
-    c.SetLeftMargin(0.15)
-    c.SetRightMargin(0.04)
-    c.SetTopMargin(0.08)
-    c.SetBottomMargin(0.18)
-    c.SetTickx(0)
-    c.SetTicky(0)
+    c.Divide(1, 2)
+
+    # Top pad for efficiencies (data and MC)
+    c.cd(1)
+    top_pad = c.GetPad(1)
+    top_pad.SetPad(0, 0.3, 1, 1.0)  # Set top pad size to cover 3/4 of the canvas
+    top_pad.SetBottomMargin(0.04)
+    top_pad.SetTopMargin(0.1)
+    top_pad.SetLeftMargin(0.12)
+    top_pad.SetRightMargin(0.05)
+    top_pad.SetTickx()
+    top_pad.SetTicky()
 
     # Set x-axis label
     if var == "lep1pt":
@@ -148,8 +150,8 @@ for var in variables:
     mc_eff.SetLineColor(ROOT.kRed)
     mc_eff.Draw("P same")
 
-    # Set axis ranges
-    c.Update()
+    # Set axis ranges and adjust label sizes for better visibility
+    c.cd(1).Update()
     gr = data_eff.GetPaintedGraph()
     gr.SetMinimum(0)
     gr.SetMaximum(1.05)
@@ -158,20 +160,34 @@ for var in variables:
     else:
         gr.GetXaxis().SetLimits(histBins[var][1], histBins[var][2])
 
+    # Adjusting axis label sizes for better readability
+    gr.GetXaxis().SetLabelSize(0.03)
+    gr.GetYaxis().SetLabelSize(0.03)
+    gr.GetXaxis().SetTitleSize(0.04)
+    gr.GetYaxis().SetTitleSize(0.04)
+
     # Add legend
-    legend = ROOT.TLegend(0.65, 0.15, 0.85, 0.30)
+    legend = ROOT.TLegend(0.55, 0.15, 0.85, 0.30)
     legend.AddEntry(data_eff, "Data", "lep")
-    legend.AddEntry(mc_eff, "MC", "lep")
+    legend.AddEntry(mc_eff, "Monte Carlo", "lep")
+    legend.SetTextSize(0.03)  # Increase legend text size for better readability
     legend.Draw()
 
     # Apply the CMS lumi style
     CMS_lumi.CMS_lumi(c, iPeriod, iPos)
 
-    # Save the canvas
-    c.SaveAs(os.path.join(output, f"{var}_efficiency.pdf"))
+    # Bottom pad for efficiency ratio
+    c.cd(2)
+    bottom_pad = c.GetPad(2)
+    bottom_pad.SetPad(0, 0.0, 1, 0.25)  # Set bottom pad size to cover 1/4 of the canvas
+    bottom_pad.SetTopMargin(0.02)
+    bottom_pad.SetBottomMargin(0.3)
+    bottom_pad.SetLeftMargin(0.12)
+    bottom_pad.SetRightMargin(0.05)
+    bottom_pad.SetTickx()
+    bottom_pad.SetTicky()
 
-    # Now create the ratio of efficiencies
-    # Create histograms from TEfficiency objects
+    # Create ratio histogram
     data_eff_hist = data_eff.GetCopyTotalHisto()
     data_eff_hist.Reset()
     mc_eff_hist = mc_eff.GetCopyTotalHisto()
@@ -199,38 +215,33 @@ for var in variables:
             mc_eff_hist.SetBinContent(i, 0)
             mc_eff_hist.SetBinError(i, 0)
 
-    # Calculate ratio histogram
     ratio_hist = data_eff_hist.Clone(var + "_efficiency_ratio")
     ratio_hist.Divide(mc_eff_hist)
 
-    # Create canvas for ratio
-    c_ratio = ROOT.TCanvas(var + "_ratio_c", var + "_ratio_c", W, H)
-    c_ratio.SetFillColor(0)
-    c_ratio.SetBorderMode(0)
-    c_ratio.SetFrameFillStyle(0)
-    c_ratio.SetFrameBorderMode(0)
-    c_ratio.SetLeftMargin(0.15)
-    c_ratio.SetRightMargin(0.04)
-    c_ratio.SetTopMargin(0.08)
-    c_ratio.SetBottomMargin(0.18)
-    c_ratio.SetTickx(0)
-    c_ratio.SetTicky(0)
-
-    # Set axis titles and ranges
-    ratio_hist.SetTitle(f";{x_label};Data/MC Efficiency Ratio")
-    ratio_hist.SetMinimum(0.0)
-    ratio_hist.SetMaximum(2.0)
+    # Draw ratio histogram
+    ratio_hist.SetTitle(f";{x_label};X/MC")
+    ratio_hist.SetMinimum(0.8)
+    ratio_hist.SetMaximum(1.2)
     ratio_hist.SetMarkerStyle(20)
     ratio_hist.SetMarkerColor(ROOT.kBlue)
     ratio_hist.SetLineColor(ROOT.kBlue)
+    ratio_hist.GetXaxis().SetTitleSize(0.1)
+    ratio_hist.GetYaxis().SetTitleSize(0.1)
+    ratio_hist.GetXaxis().SetLabelSize(0.08)
+    ratio_hist.GetYaxis().SetLabelSize(0.08)
 
-    # Draw ratio histogram
+    # Reduce the number of y-axis labels on the bottom plot
+    ratio_hist.GetYaxis().SetNdivisions(504)  # The format is N1N2N3 where N1: primary divisions
+
     ratio_hist.Draw("EP")
 
-    # Apply CMS lumi style
-    CMS_lumi.CMS_lumi(c_ratio, iPeriod, iPos)
+    # Draw a horizontal dashed line at y = 1
+    line = ROOT.TLine(ratio_hist.GetXaxis().GetXmin(), 1, ratio_hist.GetXaxis().GetXmax(), 1)
+    line.SetLineStyle(2)  # Dashed line
+    line.SetLineColor(ROOT.kBlack)  # Black color
+    line.Draw("same")
 
-    # Save the ratio plot
-    c_ratio.SaveAs(os.path.join(output, f"{var}_efficiency_ratio.pdf"))
+    # Save the combined canvas
+    c.SaveAs(os.path.join(output, f"{var}_efficiency_with_ratio.pdf"))
 
 print("Processing complete. Plots saved in:", output)
