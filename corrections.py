@@ -8,8 +8,9 @@ from array import array
 lepton = sys.argv[1]
 era = sys.argv[2]
 output = sys.argv[3]
-data_dir = sys.argv[4]
+data_ref_dir = sys.argv[4]  # Reference trigger data directory
 mc_dir = sys.argv[5]
+data_noref_dir = sys.argv[6]  # No-reference trigger data directory
 
 # Set labels based on the lepton type
 if lepton == "Muon":
@@ -38,7 +39,7 @@ histBins = {
     "MET phi": [35, 0, 3.5]
 }
 
-# Loading and combining histograms from all ROOT files in a directory
+# Function to load and combine histograms from all ROOT files in a directory
 def get_combined_histogram(directory, hist_name):
     combined_hist = None
     for filename in os.listdir(directory):
@@ -47,71 +48,89 @@ def get_combined_histogram(directory, hist_name):
             file = ROOT.TFile(filepath, "READ")
             hist = file.Get(hist_name)
 
-            # Check if the histogram is found and has entries
             if hist:
-                print(f"Found histogram '{hist_name}' in {filename}")
-                if hist.GetEntries() == 0:
-                    print(f"Warning: Histogram '{hist_name}' in {filename} has no entries.")
                 if combined_hist is None:
                     combined_hist = hist.Clone()
                     combined_hist.SetDirectory(0)
                 else:
                     combined_hist.Add(hist)
-            else:
-                print(f"Warning: Could not find histogram '{hist_name}' in {filename}")
             file.Close()
 
-    if combined_hist is None:
-        print(f"Error: No histograms named '{hist_name}' found in directory {directory}")
     return combined_hist
 
 # Create output directory if it doesn't exist
 if not os.path.exists(output):
     os.makedirs(output)
 
-# List of variables to process
-variables = histBins.keys()
-
 # Dictionary to store scale factors for all variables
 scale_factors = {}
 
 # Iterate through histogram bins and compute scale factors
-for var in variables:
-    # Combine numerator and denominator histograms from all data and MC files
-    data_num_hist = get_combined_histogram(data_dir, var + "_num")
-    data_den_hist = get_combined_histogram(data_dir, var + "_den")
-    mc_num_hist = get_combined_histogram(mc_dir, var + "_num")
-    mc_den_hist = get_combined_histogram(mc_dir, var + "_den")
+for var in histBins.keys():
+    # Load histograms for Data (Reference), MC, and Data (No-Reference)
+    data_ref_num = get_combined_histogram(data_ref_dir, var + "_num")
+    data_ref_den = get_combined_histogram(data_ref_dir, var + "_den")
+    mc_num = get_combined_histogram(mc_dir, var + "_num")
+    mc_den = get_combined_histogram(mc_dir, var + "_den")
+    data_noref_num = get_combined_histogram(data_noref_dir, var + "_num")
+    data_noref_den = get_combined_histogram(data_noref_dir, var + "_den")
 
-    # Check if the histograms exist and have entries
-    if not data_num_hist or not data_den_hist or not mc_num_hist or not mc_den_hist:
-        print(f"Error: Could not find necessary histograms for variable '{var}' in data or MC directories, or histograms are empty.")
+    # Check if all required histograms exist
+    if not data_ref_num or not data_ref_den or not mc_num or not mc_den or not data_noref_num or not data_noref_den:
+        print(f"Error: Missing histograms for variable '{var}'. Skipping...")
         continue
 
-    # Create TEfficiency objects for data and MC
-    data_eff = ROOT.TEfficiency(data_num_hist, data_den_hist)
-    mc_eff = ROOT.TEfficiency(mc_num_hist, mc_den_hist)
+    # Create TEfficiency objects
+    eff_data_ref = ROOT.TEfficiency(data_ref_num, data_ref_den)
+    eff_mc = ROOT.TEfficiency(mc_num, mc_den)
+    eff_data_noref = ROOT.TEfficiency(data_noref_num, data_noref_den)
 
-    # Compute scale factors and store bin edges
+    # Compute scale factors
     scale_factors[var] = []
-    n_bins = data_eff.GetTotalHistogram().GetNbinsX()
+    n_bins = eff_data_ref.GetTotalHistogram().GetNbinsX()
 
     for i in range(1, n_bins + 1):
         # Bin edges
-        low_edge = data_eff.GetTotalHistogram().GetXaxis().GetBinLowEdge(i)
-        high_edge = data_eff.GetTotalHistogram().GetXaxis().GetBinUpEdge(i)
+        low_edge = eff_data_ref.GetTotalHistogram().GetXaxis().GetBinLowEdge(i)
+        high_edge = eff_data_ref.GetTotalHistogram().GetXaxis().GetBinUpEdge(i)
 
         # Efficiencies
-        eff_data = data_eff.GetEfficiency(i)
-        eff_mc = mc_eff.GetEfficiency(i)
+        eff_ref = eff_data_ref.GetEfficiency(i)
+        eff_mc_val = eff_mc.GetEfficiency(i)
+        eff_noref = eff_data_noref.GetEfficiency(i)
 
-        # Compute scale factor (handle division by zero)
-        sf = eff_data / eff_mc if eff_mc > 0 else 0.0
+        # Compute Clopper-Pearson statistical uncertainties
+        err_ref_low = eff_data_ref.GetEfficiencyErrorLow(i)
+        err_ref_up = eff_data_ref.GetEfficiencyErrorUp(i)
+        err_mc_low = eff_mc.GetEfficiencyErrorLow(i)
+        err_mc_up = eff_mc.GetEfficiencyErrorUp(i)
+        err_noref_low = eff_data_noref.GetEfficiencyErrorLow(i)
+        err_noref_up = eff_data_noref.GetEfficiencyErrorUp(i)
 
-        # Store bin edges and scale factor
+        # Compute scale factor
+        sf = eff_ref / eff_mc_val if eff_mc_val > 0 else 0.0
+
+        # Compute reference/no-reference efficiency ratio
+        ref_noref_ratio = eff_ref / eff_noref if eff_noref > 0 else 1.0
+
+        # Error propagation for reference/no-reference ratio
+        err_ratio_low = ref_noref_ratio * ((err_ref_low / eff_ref) ** 2 + (err_noref_up / eff_noref) ** 2) ** 0.5 if eff_ref > 0 and eff_noref > 0 else 0.0
+        err_ratio_up = ref_noref_ratio * ((err_ref_up / eff_ref) ** 2 + (err_noref_low / eff_noref) ** 2) ** 0.5 if eff_ref > 0 and eff_noref > 0 else 0.0
+
+        # Error propagation for scale factor (MC and Data Ref errors)
+        sf_err_low = sf * ((err_ref_low / eff_ref) ** 2 + (err_mc_up / eff_mc_val) ** 2) ** 0.5 if eff_ref > 0 and eff_mc_val > 0 else 0.0
+        sf_err_up = sf * ((err_ref_up / eff_ref) ** 2 + (err_mc_low / eff_mc_val) ** 2) ** 0.5 if eff_ref > 0 and eff_mc_val > 0 else 0.0
+
+        # Quadratically combine the statistical and systematic uncertainties
+        total_err_low = (sf_err_low**2 + err_ratio_low**2) ** 0.5
+        total_err_up = (sf_err_up**2 + err_ratio_up**2) ** 0.5
+
+        # Store values in JSON output
         scale_factors[var].append({
             "bin_range": [low_edge, high_edge],
-            "scale_factor": sf
+            "scale_factor": sf,
+            "total_uncertainty_low": total_err_low,
+            "total_uncertainty_up": total_err_up
         })
 
 # Write scale factors to a JSON file
