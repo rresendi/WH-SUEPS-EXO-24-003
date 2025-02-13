@@ -60,7 +60,7 @@ if lepton == "Muon":
             "lep1pt": 40,
             "MET": 200,
             "mT": (30, 130),
-            "Boson pT": 200
+            "Boson pT": 60
         }
     
     else:
@@ -68,7 +68,7 @@ if lepton == "Muon":
             "lep1pt": 40,
             "MET": 30,
             "mT": (30, 130),
-            "Boson pT": 200
+            "Boson pT": 60
         }
 
     histBins = {
@@ -96,7 +96,7 @@ else:
             "lep1pt": 30,
             "MET": 200,
             "mT": (30, 130),
-            "Boson pT": 200
+            "Boson pT": 60
         }
     
     else:
@@ -104,7 +104,7 @@ else:
             "lep1pt": 30,
             "MET": 30,
             "mT": (30, 130),
-            "Boson pT": 200
+            "Boson pT": 60
         }
 
     histBins = {
