@@ -47,15 +47,15 @@ CMS_lumi.cmsText = "CMS"
 CMS_lumi.writeExtraText = True
 CMS_lumi.extraText = "Preliminary"
 CMS_lumi.lumi_13TeV = "36.31 fb^{-1}"
-CMS_lumi.lumi_sqrtS = "13 TeV"  # Used with iPeriod = 0
-CMS_lumi.extraOverCmsTextSize = 0.8  # Adjust spacing between "CMS" and "Preliminary"
+CMS_lumi.lumi_sqrtS = "13 TeV" 
+CMS_lumi.extraOverCmsTextSize = 0.8
 
 iPos = 0
 if iPos == 0:
     CMS_lumi.relPosX = 0.13
 
-H_ref = 700  # Decreased height for better overall size
-W_ref = 600  # Decreased width for better overall size
+H_ref = 700 
+W_ref = 600
 W = W_ref
 H = H_ref
 
@@ -121,7 +121,7 @@ for var in variables:
     # Top pad for efficiencies (data and MC)
     c.cd(1)
     top_pad = c.GetPad(1)
-    top_pad.SetPad(0, 0.3, 1, 1.0)  # Set top pad size to cover 3/4 of the canvas
+    top_pad.SetPad(0, 0.3, 1, 1.0)
     top_pad.SetBottomMargin(0.04)
     top_pad.SetTopMargin(0.1)
     top_pad.SetLeftMargin(0.12)
@@ -168,9 +168,9 @@ for var in variables:
 
     # Add legend
     legend = ROOT.TLegend(0.55, 0.15, 0.85, 0.30)
-    legend.AddEntry(data_eff, "Data", "lep")
-    legend.AddEntry(mc_eff, "Monte Carlo", "lep")
-    legend.SetTextSize(0.03)  # Increase legend text size for better readability
+    legend.AddEntry(data_eff, "No Reference Trigger", "lep")
+    legend.AddEntry(mc_eff, "Reference Trigger", "lep")
+    legend.SetTextSize(0.03)
     legend.Draw()
 
     # Apply the CMS lumi style
@@ -179,7 +179,7 @@ for var in variables:
     # Bottom pad for efficiency ratio
     c.cd(2)
     bottom_pad = c.GetPad(2)
-    bottom_pad.SetPad(0, 0.0, 1, 0.25)  # Set bottom pad size to cover 1/4 of the canvas
+    bottom_pad.SetPad(0, 0.0, 1, 0.25)
     bottom_pad.SetTopMargin(0.02)
     bottom_pad.SetBottomMargin(0.3)
     bottom_pad.SetLeftMargin(0.12)
@@ -231,14 +231,14 @@ for var in variables:
     ratio_hist.GetYaxis().SetLabelSize(0.08)
 
     # Reduce the number of y-axis labels on the bottom plot
-    ratio_hist.GetYaxis().SetNdivisions(504)  # The format is N1N2N3 where N1: primary divisions
+    ratio_hist.GetYaxis().SetNdivisions(504)
 
     ratio_hist.Draw("EP")
 
     # Draw a horizontal dashed line at y = 1
     line = ROOT.TLine(ratio_hist.GetXaxis().GetXmin(), 1, ratio_hist.GetXaxis().GetXmax(), 1)
-    line.SetLineStyle(2)  # Dashed line
-    line.SetLineColor(ROOT.kBlack)  # Black color
+    line.SetLineStyle(2)
+    line.SetLineColor(ROOT.kBlack)
     line.Draw("same")
 
     # Save the combined canvas
