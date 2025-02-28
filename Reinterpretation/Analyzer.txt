@@ -1,0 +1,38 @@
+./bin/ma5 --recolevel
+import samples/SUEPs/WH.root as signalset
+set main.lumi = 137.8
+set signalset.xsection = .431436
+set main.graphic_render = matplotlib
+
+define muon = mu+ mu-
+define electron = e+ e- 
+define lepton = e+ e- mu+ mu-
+
+select (muon) PT > 30
+reject (muon) ABSETA > 2.4
+reject (muon) D0 > 0.02
+reject (muon) DZ > 0.5
+
+select (electron) PT > 35
+reject (electron) ABSETA > 2.5
+reject (electron) (ABSETA > 1.444) and (ABSETA < 1.566)
+select (electron) (ABSETA < 1.479) and (D0 < 0.05)
+select (electron) (ABSETA < 1.479) and (DZ < 0.1)
+
+
+select (N(muon) == 1 or N(electron) == 1) and (N(lepton) == 1)
+select (N(mu+) == 1 or N(mu-) == 1) or (N(e+) == 1 or N(e-) == 1) 
+select PT(lepton[1]) > 30
+
+select (j) ABSETA < 2.5
+select (j) DELTAR (lepton) > 0.3 
+
+select (M(lepton[1]) <= 80) and (M(lepton[1]) >= 40)
+select PT(lepton[1]) > 30
+select N(b) == 0
+
+plot M(lepton[1]) 60 60 120
+plot PT(lepton[1]) 200 0 200
+plot ETA(lepton[1]) 50 -2.5 2.5
+plot PT(j[1]) 500 0 500
+plot NTRACKS(j[1]) 40 0 60
