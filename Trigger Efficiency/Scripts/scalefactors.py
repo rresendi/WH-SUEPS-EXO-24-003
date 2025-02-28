@@ -231,7 +231,7 @@ for var in variables:
     ratio_hist.GetYaxis().SetLabelSize(0.08)
 
     # Reduce the number of y-axis labels on the bottom plot
-    ratio_hist.GetYaxis().SetNdivisions(504)  # The format is N1N2N3 where N1: primary divisions
+    ratio_hist.GetYaxis().SetNdivisions(504)
 
     ratio_hist.Draw("EP")
 
