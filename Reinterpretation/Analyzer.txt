@@ -1,5 +1,5 @@
 ./bin/ma5 --recolevel
-import samples/SUEPs/WH.root as signalset
+import /path/to/file/* as signalset
 set main.lumi = 137.8
 set signalset.xsection = .431436
 set main.graphic_render = matplotlib
