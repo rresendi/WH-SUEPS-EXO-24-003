@@ -10,12 +10,12 @@ from array import array
 #####################
 
 # for x label if doing pt
-lepton = sys.argv[1]  # Electron or Muon
-isdata = sys.argv[2]  # mc or data
-eta = sys.argv[3]  # Eta or noEta
+lepton = sys.argv[1]
+isdata = sys.argv[2]
+eta = sys.argv[3]
 era = sys.argv[4]
-output = sys.argv[5]  # website?
-input_folder = sys.argv[6]  # Input folder containing ROOT files
+output = sys.argv[5] 
+input_folder = sys.argv[6] 
 
 if lepton == "Muon":
     pt_label = "p_{T}^{#mu} [GeV]"
@@ -59,7 +59,7 @@ if isdata == "data":
 else: #mc
     CMS_lumi.extraText = "Simulation Preliminary"
 
-CMS_lumi.lumi_sqrtS = "13 TeV"  # Used with iPeriod = 0, e.g., for simulation-only plots
+CMS_lumi.lumi_sqrtS = "13 TeV"
 
 iPos = 0
 if iPos == 0:
