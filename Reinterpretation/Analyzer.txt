@@ -1,5 +1,5 @@
-./bin/ma5 --recolevel
-import /path/to/file/* as signalset
+python3 ./bin/ma5 --recolevel
+import /path/to/file/*.root as signalset
 set main.lumi = 137.8
 set signalset.xsection = .431436
 set main.graphic_render = matplotlib
@@ -25,14 +25,14 @@ select (N(mu+) == 1 or N(mu-) == 1) or (N(e+) == 1 or N(e-) == 1)
 select PT(lepton[1]) > 30
 
 select (j) ABSETA < 2.5
-select (j) DELTAR (lepton) > 0.3 
+select (j) DELTAR (lepton) > 0.3
 
-select (M(lepton[1]) <= 80) and (M(lepton[1]) >= 40)
+select (MT (lepton[1]) <= 80) and (MT (lepton[1]) >= 40)
 select PT(lepton[1]) > 30
 select N(b) == 0
 
-plot M(lepton[1]) 60 60 120
+plot MT(lepton[1] MET) 60 0 120
 plot PT(lepton[1]) 200 0 200
 plot ETA(lepton[1]) 50 -2.5 2.5
 plot PT(j[1]) 500 0 500
-plot NTRACKS(j[1]) 40 0 60
+plot NTRACKS(j[1]) 60 0 60
