@@ -27,11 +27,11 @@ select PT(lepton[1]) > 30
 select (j) ABSETA < 2.5
 select (j) DELTAR (lepton) > 0.3
 
-select (MT (lepton[1]) <= 80) and (MT (lepton[1]) >= 40)
 select PT(lepton[1]) > 30
 select N(b) == 0
 
-plot MT(lepton[1] MET) 60 0 120
+plot M(lepton[1] met) 60 0 120
+plot MT(lepton[1] met) 60 0 120
 plot PT(lepton[1]) 200 0 200
 plot ETA(lepton[1]) 50 -2.5 2.5
 plot PT(j[1]) 500 0 500
