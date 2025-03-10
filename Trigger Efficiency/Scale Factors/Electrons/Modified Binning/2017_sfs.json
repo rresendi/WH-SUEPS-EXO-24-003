@@ -1,1 +1,1084 @@
-
+{
+  "lep1pt": [
+    {
+      "bin_range": [
+        0.0,
+        5.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        5.0,
+        10.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        10.0,
+        15.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        15.0,
+        20.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        20.0,
+        25.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        25.0,
+        30.0
+      ],
+      "systematic uncertainty_low": 0.2678133345220581,
+      "systematic uncertainty_up": 0.27198237043519746
+    },
+    {
+      "bin_range": [
+        30.0,
+        35.0
+      ],
+      "systematic uncertainty_low": 0.11128497373565926,
+      "systematic uncertainty_up": 0.11445686909886807
+    },
+    {
+      "bin_range": [
+        35.0,
+        40.0
+      ],
+      "systematic uncertainty_low": 0.01319567452601091,
+      "systematic uncertainty_up": 0.013189329092284345
+    },
+    {
+      "bin_range": [
+        40.0,
+        50.0
+      ],
+      "systematic uncertainty_low": 0.005450375367943424,
+      "systematic uncertainty_up": 0.00542246265137026
+    },
+    {
+      "bin_range": [
+        50.0,
+        60.0
+      ],
+      "systematic uncertainty_low": 0.005503676481766804,
+      "systematic uncertainty_up": 0.005460289482121052
+    },
+    {
+      "bin_range": [
+        60.0,
+        70.0
+      ],
+      "systematic uncertainty_low": 0.005577939648185177,
+      "systematic uncertainty_up": 0.005517393112679997
+    },
+    {
+      "bin_range": [
+        70.0,
+        80.0
+      ],
+      "systematic uncertainty_low": 0.005979732926803575,
+      "systematic uncertainty_up": 0.00589884132535459
+    },
+    {
+      "bin_range": [
+        80.0,
+        90.0
+      ],
+      "systematic uncertainty_low": 0.0064901757715821375,
+      "systematic uncertainty_up": 0.006386736189085413
+    },
+    {
+      "bin_range": [
+        90.0,
+        100.0
+      ],
+      "systematic uncertainty_low": 0.006884175488024503,
+      "systematic uncertainty_up": 0.006748905993299395
+    },
+    {
+      "bin_range": [
+        100.0,
+        120.0
+      ],
+      "systematic uncertainty_low": 0.005517047494137784,
+      "systematic uncertainty_up": 0.005428946277460797
+    },
+    {
+      "bin_range": [
+        120.0,
+        140.0
+      ],
+      "systematic uncertainty_low": 0.005027004841887183,
+      "systematic uncertainty_up": 0.004886530739831145
+    },
+    {
+      "bin_range": [
+        140.0,
+        160.0
+      ],
+      "systematic uncertainty_low": 0.0054836041023590435,
+      "systematic uncertainty_up": 0.005272406626049228
+    },
+    {
+      "bin_range": [
+        160.0,
+        180.0
+      ],
+      "systematic uncertainty_low": 0.006516151728718104,
+      "systematic uncertainty_up": 0.006218640919627938
+    },
+    {
+      "bin_range": [
+        180.0,
+        200.0
+      ],
+      "systematic uncertainty_low": 0.007660417705206526,
+      "systematic uncertainty_up": 0.007238160494647457
+    }
+  ],
+  "MET": [
+    {
+      "bin_range": [
+        0.0,
+        10.0
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        10.0,
+        20.0
+      ],
+      "systematic uncertainty_low": 0.2138773540373849,
+      "systematic uncertainty_up": 0.16714302298307554
+    },
+    {
+      "bin_range": [
+        20.0,
+        30.0
+      ],
+      "systematic uncertainty_low": 0.12076129062487545,
+      "systematic uncertainty_up": 0.08794204367196654
+    },
+    {
+      "bin_range": [
+        30.0,
+        40.0
+      ],
+      "systematic uncertainty_low": 0.0995844431652546,
+      "systematic uncertainty_up": 0.07721165777696144
+    },
+    {
+      "bin_range": [
+        40.0,
+        50.0
+      ],
+      "systematic uncertainty_low": 0.07793416582701891,
+      "systematic uncertainty_up": 0.0578859744589992
+    },
+    {
+      "bin_range": [
+        50.0,
+        60.0
+      ],
+      "systematic uncertainty_low": 0.08063387408943885,
+      "systematic uncertainty_up": 0.05400723480801431
+    },
+    {
+      "bin_range": [
+        60.0,
+        70.0
+      ],
+      "systematic uncertainty_low": 0.0625528706247601,
+      "systematic uncertainty_up": 0.043063781528410804
+    },
+    {
+      "bin_range": [
+        70.0,
+        80.0
+      ],
+      "systematic uncertainty_low": 0.04875034738429801,
+      "systematic uncertainty_up": 0.0327875846802796
+    },
+    {
+      "bin_range": [
+        80.0,
+        90.0
+      ],
+      "systematic uncertainty_low": 0.04438829381733674,
+      "systematic uncertainty_up": 0.03307930745334329
+    },
+    {
+      "bin_range": [
+        90.0,
+        100.0
+      ],
+      "systematic uncertainty_low": 0.04194782691033756,
+      "systematic uncertainty_up": 0.03624144090677453
+    },
+    {
+      "bin_range": [
+        100.0,
+        110.0
+      ],
+      "systematic uncertainty_low": 0.029294453946791227,
+      "systematic uncertainty_up": 0.025834875615328032
+    },
+    {
+      "bin_range": [
+        110.0,
+        120.0
+      ],
+      "systematic uncertainty_low": 0.022178802213745987,
+      "systematic uncertainty_up": 0.020533914404986114
+    },
+    {
+      "bin_range": [
+        120.0,
+        130.0
+      ],
+      "systematic uncertainty_low": 0.01519365201827044,
+      "systematic uncertainty_up": 0.01449182197154019
+    },
+    {
+      "bin_range": [
+        130.0,
+        140.0
+      ],
+      "systematic uncertainty_low": 0.011503266221791344,
+      "systematic uncertainty_up": 0.011145443113385436
+    },
+    {
+      "bin_range": [
+        140.0,
+        150.0
+      ],
+      "systematic uncertainty_low": 0.00858883476004207,
+      "systematic uncertainty_up": 0.008434989175904406
+    },
+    {
+      "bin_range": [
+        150.0,
+        160.0
+      ],
+      "systematic uncertainty_low": 0.006752798946985461,
+      "systematic uncertainty_up": 0.00667749476940398
+    },
+    {
+      "bin_range": [
+        160.0,
+        170.0
+      ],
+      "systematic uncertainty_low": 0.005854839625232129,
+      "systematic uncertainty_up": 0.005817901055050668
+    },
+    {
+      "bin_range": [
+        170.0,
+        180.0
+      ],
+      "systematic uncertainty_low": 0.006187174753667794,
+      "systematic uncertainty_up": 0.006171017755518398
+    },
+    {
+      "bin_range": [
+        180.0,
+        190.0
+      ],
+      "systematic uncertainty_low": 0.006768424235080961,
+      "systematic uncertainty_up": 0.006759916855417212
+    },
+    {
+      "bin_range": [
+        190.0,
+        200.0
+      ],
+      "systematic uncertainty_low": 0.007357369748502721,
+      "systematic uncertainty_up": 0.00735126533345355
+    },
+    {
+      "bin_range": [
+        200.0,
+        210.0
+      ],
+      "systematic uncertainty_low": 0.007814036411787406,
+      "systematic uncertainty_up": 0.007808595613028912
+    },
+    {
+      "bin_range": [
+        210.0,
+        220.0
+      ],
+      "systematic uncertainty_low": 0.008313101712857675,
+      "systematic uncertainty_up": 0.008307776798132051
+    },
+    {
+      "bin_range": [
+        220.0,
+        230.0
+      ],
+      "systematic uncertainty_low": 0.008866963472669109,
+      "systematic uncertainty_up": 0.008861792994606101
+    },
+    {
+      "bin_range": [
+        230.0,
+        240.0
+      ],
+      "systematic uncertainty_low": 0.009308490154442876,
+      "systematic uncertainty_up": 0.009303588370709583
+    },
+    {
+      "bin_range": [
+        240.0,
+        250.0
+      ],
+      "systematic uncertainty_low": 0.010006020019237902,
+      "systematic uncertainty_up": 0.010001293139133503
+    },
+    {
+      "bin_range": [
+        250.0,
+        260.0
+      ],
+      "systematic uncertainty_low": 0.011164153707012289,
+      "systematic uncertainty_up": 0.01115933906261768
+    },
+    {
+      "bin_range": [
+        260.0,
+        270.0
+      ],
+      "systematic uncertainty_low": 0.012070284216980292,
+      "systematic uncertainty_up": 0.012065455467221538
+    },
+    {
+      "bin_range": [
+        270.0,
+        280.0
+      ],
+      "systematic uncertainty_low": 0.013238562232374563,
+      "systematic uncertainty_up": 0.013231246047030198
+    },
+    {
+      "bin_range": [
+        280.0,
+        290.0
+      ],
+      "systematic uncertainty_low": 0.013802793451530269,
+      "systematic uncertainty_up": 0.013795190525910873
+    },
+    {
+      "bin_range": [
+        290.0,
+        300.0
+      ],
+      "systematic uncertainty_low": 0.015609757116949823,
+      "systematic uncertainty_up": 0.015601847275933398
+    }
+  ],
+  "mT": [
+    {
+      "bin_range": [
+        0.0,
+        10.0
+      ],
+      "systematic uncertainty_low": 0.0070027841200734665,
+      "systematic uncertainty_up": 0.006972890198471063
+    },
+    {
+      "bin_range": [
+        10.0,
+        20.0
+      ],
+      "systematic uncertainty_low": 0.007115834429125396,
+      "systematic uncertainty_up": 0.007082587551056489
+    },
+    {
+      "bin_range": [
+        20.0,
+        30.0
+      ],
+      "systematic uncertainty_low": 0.006998709245007975,
+      "systematic uncertainty_up": 0.0069619921660701465
+    },
+    {
+      "bin_range": [
+        30.0,
+        40.0
+      ],
+      "systematic uncertainty_low": 0.006818493209257629,
+      "systematic uncertainty_up": 0.006782804032961632
+    },
+    {
+      "bin_range": [
+        40.0,
+        50.0
+      ],
+      "systematic uncertainty_low": 0.0065860134501447825,
+      "systematic uncertainty_up": 0.00655052783452398
+    },
+    {
+      "bin_range": [
+        50.0,
+        60.0
+      ],
+      "systematic uncertainty_low": 0.006301535290129802,
+      "systematic uncertainty_up": 0.0062690364582049475
+    },
+    {
+      "bin_range": [
+        60.0,
+        70.0
+      ],
+      "systematic uncertainty_low": 0.005873004050560357,
+      "systematic uncertainty_up": 0.005846335696112398
+    },
+    {
+      "bin_range": [
+        70.0,
+        80.0
+      ],
+      "systematic uncertainty_low": 0.005882527943871121,
+      "systematic uncertainty_up": 0.005859117131376457
+    },
+    {
+      "bin_range": [
+        80.0,
+        90.0
+      ],
+      "systematic uncertainty_low": 0.006618041761169254,
+      "systematic uncertainty_up": 0.006591425817033542
+    },
+    {
+      "bin_range": [
+        90.0,
+        100.0
+      ],
+      "systematic uncertainty_low": 0.007948686438557171,
+      "systematic uncertainty_up": 0.007896240481086423
+    },
+    {
+      "bin_range": [
+        100.0,
+        110.0
+      ],
+      "systematic uncertainty_low": 0.010185975996022952,
+      "systematic uncertainty_up": 0.010072916343434908
+    },
+    {
+      "bin_range": [
+        110.0,
+        120.0
+      ],
+      "systematic uncertainty_low": 0.013480003507578492,
+      "systematic uncertainty_up": 0.013236786391214858
+    },
+    {
+      "bin_range": [
+        120.0,
+        130.0
+      ],
+      "systematic uncertainty_low": 0.016712562607353442,
+      "systematic uncertainty_up": 0.01625053951755569
+    },
+    {
+      "bin_range": [
+        130.0,
+        140.0
+      ],
+      "systematic uncertainty_low": 0.02135852389289026,
+      "systematic uncertainty_up": 0.020713488909854392
+    },
+    {
+      "bin_range": [
+        140.0,
+        150.0
+      ],
+      "systematic uncertainty_low": 0.025757860005511467,
+      "systematic uncertainty_up": 0.024866972544795356
+    }
+  ],
+  "lep1phi": [
+    {
+      "bin_range": [
+        0.0,
+        0.1
+      ],
+      "systematic uncertainty_low": 0.0191768633330003,
+      "systematic uncertainty_up": 0.018873280653650286
+    },
+    {
+      "bin_range": [
+        0.1,
+        0.2
+      ],
+      "systematic uncertainty_low": 0.01965668855639958,
+      "systematic uncertainty_up": 0.01933733167302044
+    },
+    {
+      "bin_range": [
+        0.2,
+        0.30000000000000004
+      ],
+      "systematic uncertainty_low": 0.01838298160226771,
+      "systematic uncertainty_up": 0.018102358351503197
+    },
+    {
+      "bin_range": [
+        0.30000000000000004,
+        0.4
+      ],
+      "systematic uncertainty_low": 0.017675747092743964,
+      "systematic uncertainty_up": 0.01735738643298897
+    },
+    {
+      "bin_range": [
+        0.4,
+        0.5
+      ],
+      "systematic uncertainty_low": 0.019022203471865822,
+      "systematic uncertainty_up": 0.01872575634452652
+    },
+    {
+      "bin_range": [
+        0.5,
+        0.6000000000000001
+      ],
+      "systematic uncertainty_low": 0.019548879718630226,
+      "systematic uncertainty_up": 0.01927501427441703
+    },
+    {
+      "bin_range": [
+        0.6000000000000001,
+        0.7000000000000001
+      ],
+      "systematic uncertainty_low": 0.019527489469484675,
+      "systematic uncertainty_up": 0.019243886006116272
+    },
+    {
+      "bin_range": [
+        0.7000000000000001,
+        0.8
+      ],
+      "systematic uncertainty_low": 0.018364013236278173,
+      "systematic uncertainty_up": 0.018091946083660923
+    },
+    {
+      "bin_range": [
+        0.8,
+        0.9
+      ],
+      "systematic uncertainty_low": 0.018984368480444252,
+      "systematic uncertainty_up": 0.018700310104845824
+    },
+    {
+      "bin_range": [
+        0.9,
+        1.0
+      ],
+      "systematic uncertainty_low": 0.021028385618185833,
+      "systematic uncertainty_up": 0.020806707489487108
+    },
+    {
+      "bin_range": [
+        1.0,
+        1.1
+      ],
+      "systematic uncertainty_low": 0.0185613431906398,
+      "systematic uncertainty_up": 0.018318287090283557
+    },
+    {
+      "bin_range": [
+        1.1,
+        1.2000000000000002
+      ],
+      "systematic uncertainty_low": 0.016849025076549458,
+      "systematic uncertainty_up": 0.0166089404461474
+    },
+    {
+      "bin_range": [
+        1.2000000000000002,
+        1.3
+      ],
+      "systematic uncertainty_low": 0.018827440813519867,
+      "systematic uncertainty_up": 0.018589016628785943
+    },
+    {
+      "bin_range": [
+        1.3,
+        1.4000000000000001
+      ],
+      "systematic uncertainty_low": 0.01890911267212419,
+      "systematic uncertainty_up": 0.018683583215459803
+    },
+    {
+      "bin_range": [
+        1.4000000000000001,
+        1.5
+      ],
+      "systematic uncertainty_low": 0.017404441226180376,
+      "systematic uncertainty_up": 0.017170632811305268
+    },
+    {
+      "bin_range": [
+        1.5,
+        1.6
+      ],
+      "systematic uncertainty_low": 0.018704677937175656,
+      "systematic uncertainty_up": 0.018429891406860376
+    },
+    {
+      "bin_range": [
+        1.6,
+        1.7000000000000002
+      ],
+      "systematic uncertainty_low": 0.01791135647595585,
+      "systematic uncertainty_up": 0.01765371626290588
+    },
+    {
+      "bin_range": [
+        1.7000000000000002,
+        1.8
+      ],
+      "systematic uncertainty_low": 0.018534165768712682,
+      "systematic uncertainty_up": 0.01827020035647028
+    },
+    {
+      "bin_range": [
+        1.8,
+        1.9000000000000001
+      ],
+      "systematic uncertainty_low": 0.01868216197166915,
+      "systematic uncertainty_up": 0.018451202086137087
+    },
+    {
+      "bin_range": [
+        1.9000000000000001,
+        2.0
+      ],
+      "systematic uncertainty_low": 0.019092876928379066,
+      "systematic uncertainty_up": 0.018850195807186908
+    },
+    {
+      "bin_range": [
+        2.0,
+        2.1
+      ],
+      "systematic uncertainty_low": 0.017191268684906943,
+      "systematic uncertainty_up": 0.01692883634748659
+    },
+    {
+      "bin_range": [
+        2.1,
+        2.2
+      ],
+      "systematic uncertainty_low": 0.01717144210413361,
+      "systematic uncertainty_up": 0.016919652148898085
+    },
+    {
+      "bin_range": [
+        2.2,
+        2.3000000000000003
+      ],
+      "systematic uncertainty_low": 0.0182932130176392,
+      "systematic uncertainty_up": 0.018032149396538327
+    },
+    {
+      "bin_range": [
+        2.3000000000000003,
+        2.4000000000000004
+      ],
+      "systematic uncertainty_low": 0.016653743675387564,
+      "systematic uncertainty_up": 0.0164162329886934
+    },
+    {
+      "bin_range": [
+        2.4000000000000004,
+        2.5
+      ],
+      "systematic uncertainty_low": 0.016665472045178296,
+      "systematic uncertainty_up": 0.01644087759423202
+    },
+    {
+      "bin_range": [
+        2.5,
+        2.6
+      ],
+      "systematic uncertainty_low": 0.017514254699211387,
+      "systematic uncertainty_up": 0.01727680228762368
+    },
+    {
+      "bin_range": [
+        2.6,
+        2.7
+      ],
+      "systematic uncertainty_low": 0.018520775319555306,
+      "systematic uncertainty_up": 0.01828935487053294
+    },
+    {
+      "bin_range": [
+        2.7,
+        2.8000000000000003
+      ],
+      "systematic uncertainty_low": 0.022624815361519196,
+      "systematic uncertainty_up": 0.022429420986808783
+    },
+    {
+      "bin_range": [
+        2.8000000000000003,
+        2.9000000000000004
+      ],
+      "systematic uncertainty_low": 0.02273362907830903,
+      "systematic uncertainty_up": 0.02255345291655295
+    },
+    {
+      "bin_range": [
+        2.9000000000000004,
+        3.0
+      ],
+      "systematic uncertainty_low": 0.024683164429964623,
+      "systematic uncertainty_up": 0.024532067881426235
+    },
+    {
+      "bin_range": [
+        3.0,
+        3.1
+      ],
+      "systematic uncertainty_low": 0.024322290121577873,
+      "systematic uncertainty_up": 0.024141336932873375
+    },
+    {
+      "bin_range": [
+        3.1,
+        3.2
+      ],
+      "systematic uncertainty_low": 0.03772092154320905,
+      "systematic uncertainty_up": 0.037256329301981014
+    },
+    {
+      "bin_range": [
+        3.2,
+        3.3000000000000003
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        3.3000000000000003,
+        3.4000000000000004
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        3.4000000000000004,
+        3.5
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    }
+  ],
+  "MET phi": [
+    {
+      "bin_range": [
+        0.0,
+        0.1
+      ],
+      "systematic uncertainty_low": 0.019097929433763212,
+      "systematic uncertainty_up": 0.018753457500493786
+    },
+    {
+      "bin_range": [
+        0.1,
+        0.2
+      ],
+      "systematic uncertainty_low": 0.019250544831229083,
+      "systematic uncertainty_up": 0.01892436627537646
+    },
+    {
+      "bin_range": [
+        0.2,
+        0.30000000000000004
+      ],
+      "systematic uncertainty_low": 0.019751514671198494,
+      "systematic uncertainty_up": 0.019458101712019112
+    },
+    {
+      "bin_range": [
+        0.30000000000000004,
+        0.4
+      ],
+      "systematic uncertainty_low": 0.01927687339537576,
+      "systematic uncertainty_up": 0.018954302842601002
+    },
+    {
+      "bin_range": [
+        0.4,
+        0.5
+      ],
+      "systematic uncertainty_low": 0.01895117634798613,
+      "systematic uncertainty_up": 0.018676585462226187
+    },
+    {
+      "bin_range": [
+        0.5,
+        0.6000000000000001
+      ],
+      "systematic uncertainty_low": 0.0189000574874711,
+      "systematic uncertainty_up": 0.018620050072709247
+    },
+    {
+      "bin_range": [
+        0.6000000000000001,
+        0.7000000000000001
+      ],
+      "systematic uncertainty_low": 0.019224635464380888,
+      "systematic uncertainty_up": 0.01895988118639904
+    },
+    {
+      "bin_range": [
+        0.7000000000000001,
+        0.8
+      ],
+      "systematic uncertainty_low": 0.017782696992249474,
+      "systematic uncertainty_up": 0.017522658535808273
+    },
+    {
+      "bin_range": [
+        0.8,
+        0.9
+      ],
+      "systematic uncertainty_low": 0.018587173987562773,
+      "systematic uncertainty_up": 0.018323839567269764
+    },
+    {
+      "bin_range": [
+        0.9,
+        1.0
+      ],
+      "systematic uncertainty_low": 0.018224856832553458,
+      "systematic uncertainty_up": 0.01795037539711211
+    },
+    {
+      "bin_range": [
+        1.0,
+        1.1
+      ],
+      "systematic uncertainty_low": 0.01926917048980814,
+      "systematic uncertainty_up": 0.018979930311273367
+    },
+    {
+      "bin_range": [
+        1.1,
+        1.2000000000000002
+      ],
+      "systematic uncertainty_low": 0.01877672310692068,
+      "systematic uncertainty_up": 0.01853366961966468
+    },
+    {
+      "bin_range": [
+        1.2000000000000002,
+        1.3
+      ],
+      "systematic uncertainty_low": 0.018635562885481856,
+      "systematic uncertainty_up": 0.01839159371315119
+    },
+    {
+      "bin_range": [
+        1.3,
+        1.4000000000000001
+      ],
+      "systematic uncertainty_low": 0.017961587409741697,
+      "systematic uncertainty_up": 0.017690816972188828
+    },
+    {
+      "bin_range": [
+        1.4000000000000001,
+        1.5
+      ],
+      "systematic uncertainty_low": 0.018341481183325715,
+      "systematic uncertainty_up": 0.01809689937693595
+    },
+    {
+      "bin_range": [
+        1.5,
+        1.6
+      ],
+      "systematic uncertainty_low": 0.017441001687246292,
+      "systematic uncertainty_up": 0.01719898317478898
+    },
+    {
+      "bin_range": [
+        1.6,
+        1.7000000000000002
+      ],
+      "systematic uncertainty_low": 0.018245809723197694,
+      "systematic uncertainty_up": 0.01802520159691557
+    },
+    {
+      "bin_range": [
+        1.7000000000000002,
+        1.8
+      ],
+      "systematic uncertainty_low": 0.017521945402566054,
+      "systematic uncertainty_up": 0.017274825915222707
+    },
+    {
+      "bin_range": [
+        1.8,
+        1.9000000000000001
+      ],
+      "systematic uncertainty_low": 0.017340349360743815,
+      "systematic uncertainty_up": 0.017130639432233943
+    },
+    {
+      "bin_range": [
+        1.9000000000000001,
+        2.0
+      ],
+      "systematic uncertainty_low": 0.01760401667325668,
+      "systematic uncertainty_up": 0.01738769265423075
+    },
+    {
+      "bin_range": [
+        2.0,
+        2.1
+      ],
+      "systematic uncertainty_low": 0.017856946668257174,
+      "systematic uncertainty_up": 0.017647341767531147
+    },
+    {
+      "bin_range": [
+        2.1,
+        2.2
+      ],
+      "systematic uncertainty_low": 0.019215947782036526,
+      "systematic uncertainty_up": 0.019032505915220297
+    },
+    {
+      "bin_range": [
+        2.2,
+        2.3000000000000003
+      ],
+      "systematic uncertainty_low": 0.019294512309357324,
+      "systematic uncertainty_up": 0.01908430960349043
+    },
+    {
+      "bin_range": [
+        2.3000000000000003,
+        2.4000000000000004
+      ],
+      "systematic uncertainty_low": 0.019068799404164675,
+      "systematic uncertainty_up": 0.01885173601391877
+    },
+    {
+      "bin_range": [
+        2.4000000000000004,
+        2.5
+      ],
+      "systematic uncertainty_low": 0.019371632112844882,
+      "systematic uncertainty_up": 0.019162781222958246
+    },
+    {
+      "bin_range": [
+        2.5,
+        2.6
+      ],
+      "systematic uncertainty_low": 0.018436984629459738,
+      "systematic uncertainty_up": 0.01824671088145888
+    },
+    {
+      "bin_range": [
+        2.6,
+        2.7
+      ],
+      "systematic uncertainty_low": 0.018136744436546164,
+      "systematic uncertainty_up": 0.01793080617406624
+    },
+    {
+      "bin_range": [
+        2.7,
+        2.8000000000000003
+      ],
+      "systematic uncertainty_low": 0.017435775502659012,
+      "systematic uncertainty_up": 0.01721602243094875
+    },
+    {
+      "bin_range": [
+        2.8000000000000003,
+        2.9000000000000004
+      ],
+      "systematic uncertainty_low": 0.016888321352077615,
+      "systematic uncertainty_up": 0.016683544258674948
+    },
+    {
+      "bin_range": [
+        2.9000000000000004,
+        3.0
+      ],
+      "systematic uncertainty_low": 0.016903459845222128,
+      "systematic uncertainty_up": 0.016669294905958205
+    },
+    {
+      "bin_range": [
+        3.0,
+        3.1
+      ],
+      "systematic uncertainty_low": 0.016706563696306936,
+      "systematic uncertainty_up": 0.016476119757373554
+    },
+    {
+      "bin_range": [
+        3.1,
+        3.2
+      ],
+      "systematic uncertainty_low": 0.028179564546166977,
+      "systematic uncertainty_up": 0.027580119713018658
+    },
+    {
+      "bin_range": [
+        3.2,
+        3.3000000000000003
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        3.3000000000000003,
+        3.4000000000000004
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    },
+    {
+      "bin_range": [
+        3.4000000000000004,
+        3.5
+      ],
+      "systematic uncertainty_low": 0.0,
+      "systematic uncertainty_up": 0.0
+    }
+  ]
+}
