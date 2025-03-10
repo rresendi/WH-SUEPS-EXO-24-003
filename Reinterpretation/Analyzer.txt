@@ -16,8 +16,11 @@ reject (muon) DZ > 0.5
 select (electron) PT > 35
 reject (electron) ABSETA > 2.5
 reject (electron) (ABSETA > 1.444) and (ABSETA < 1.566)
+select (electron) ((ABSETA < 1.444) or (ABSETA > 1.566))
 select (electron) (ABSETA < 1.479) and (D0 < 0.05)
+select (electron) (ABSETA >= 1.479) and (D0 < 0.10)
 select (electron) (ABSETA < 1.479) and (DZ < 0.1)
+select (electron) (ABSETA >= 1.479) and (DZ < 0.20)
 
 
 select (N(muon) == 1 or N(electron) == 1) and (N(lepton) == 1)
