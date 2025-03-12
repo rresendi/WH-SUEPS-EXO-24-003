@@ -90,23 +90,23 @@ double sphericity(const std::vector<fastjet::PseudoJet>&particles, double r) {
     return sphericityval;
 }
 
-vector<RecLeptonFormat> filtered_muons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0) {
+vector<RecLeptonFormat> filtered_muons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0, std::string charge = "") {
     // Selects muons that pass analysis-level cuts
 
     vector<RecLeptonFormat> filtered;
 
     for ( auto & obj : objects) {
         
-        // // Charge Selections
-        // if ( charge == '+') {
-        //     if (obj.charge() <= 0) {
-        //         continue;
-        //     }
-        // } else if ( charge == '-') {
-        //     if (obj.charge() >= 0) {
-        //         continue;
-        //     }
-        // }
+        // Charge Selections
+        if ( charge == '+') {
+            if (obj.charge() <= 0) {
+                continue;
+            }
+        } else if ( charge == '-') {
+            if (obj.charge() >= 0) {
+                continue;
+            }
+        }
 
         // Object Selections
 
@@ -140,23 +140,23 @@ vector<RecLeptonFormat> filtered_muons(vector<RecLeptonFormat> objects, float pt
         
 }
 
-vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0) {
+vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0, std::string charge = "") {
     // Selects electrons that pass analysis-level cuts
 
     vector<RecLeptonFormat> filtered;
 
     for ( auto & obj : objects) {
         
-        // // Charge Selections
-        // if ( charge == '+') {
-        //     if (obj.charge() <= 0) {
-        //         continue;
-        //     }
-        // } else if ( charge == '-') {
-        //     if (obj.charge() >= 0) {
-        //         continue;
-        //     }
-        // }
+        // Charge Selections
+        if ( charge == '+') {
+            if (obj.charge() <= 0) {
+                continue;
+            }
+        } else if ( charge == '-') {
+            if (obj.charge() >= 0) {
+                continue;
+            }
+        }
 
         // Object Selections
 
@@ -374,12 +374,16 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 
     // add selections //
 
-    Manager()->AddCut("onelep");
-    Manager()->AddCut("oneAk15");
-    Manager()->AddCut("wpT");
-    Manager()->AddCut("noBs");
-    Manager()->AddCut("Ak15pT");
-    Manager()->AddCut("deltaR");
+    /////////////////////////
+    // rename all of these //
+    /////////////////////////
+
+    // Manager()->AddCut("onelep");
+    // Manager()->AddCut("oneAk15");
+    // Manager()->AddCut("wpT");
+    // Manager()->AddCut("noBs");
+    // Manager()->AddCut("Ak15pT");
+    // Manager()->AddCut("deltaR");
 
     // make histos //
 
@@ -488,13 +492,25 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     Manager()->InitializeForNewEvent(weight);
     if (event.rec() == 0) {return true;}
 
-    // applying the cuts
+    //////////////////////////////////////////////
+    //          applying the selections         //
+    //////////////////////////////////////////////
+
+
+    //////////////////////////////////////////////
+    //           object level selections        //
+    //////////////////////////////////////////////
 
     // electrons
     vector<RecLeptonFormat> electrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta);
+    vector<RecLeptonFormat> posElectrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta, "+");
+    vector<RecLeptonFormat> negeElectrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta, "-");
 
     // muons
     vector<RecLeptonFormat> muons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta);
+    vector<RecLeptonFormat> posMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, "+");
+    vector<RecLeptonFormat> negMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, "-");
+
 
     // leptons (combined electrons and muons)
     vector<RecLeptonFormat> leptons = electrons;
@@ -504,12 +520,99 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     vector<RecLeptonFormat> Ak4jets = filtered_electrons(event.rec()->jets(), ak4_minpt, ak4_maxeta, leptons, ak4lep_deltar);
 
     // sorting all objects
-    leading(electrons, muons, leptons, Ak4jets);
+    leading(electrons, posElectrons, negeElectrons, muons, posMuons, negMuons, leptons, Ak4jets);
 
-    // event level selections
+    //////////////////////////////////////////////
+    //           event level selections         //
+    //////////////////////////////////////////////
 
-    // leading lep pt?
+    // orthogonality to ggf offline: remove events with no muons or electrons
 
+    bool noleptons = (electrons.size() == 0 && muons.size() == 0);
+
+    // orthogonality to zh: remove events with a pair of OSSF leptons
+    bool noOSSF = (posLeptons.size() == 1 && negLeptons.size() == 1);
+    
+    // apply both orthogonality cuts
+    bool orthogonality = noleptons && noOSSF;
+    if (not Manager()->ApplyCut(orthogonality), "orthogonality") return true;
+
+
+    // met selections
+
+    float const minmetpt = 30;
+    float const mindphimetak4 = 1.5;
+
+    // one tight lepton ??
+    
+    // w
+
+    float const minwpt = 60;
+    float const minwmass = 30;
+    float const maxwmass = 130;
+
+    // tracks
+
+    float const mintrackpt = 1;
+    float const maxtracketa = 2.5;
+    float const maxtrackd0 = 0.05;
+    float const maxtrackdz = 0.05;
+    float const mintracklepdr = 0.4;
+    // missing from pv and puppi weight
+
+    // can't touch b-tagging
+
+    // ak-15
+
+    float const minak15pt = 60;
+    // missing two tracks
+
+    // ak-15 clustering 
+
+    auto ak15jetsout = getak15jets(event.rec()->tracks(), leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
+
+    std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first
+    std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second
+
+    // need at least one cluster
+    bool oneak15 = (ak15jets.size() > 0);
+    if (not Manager()->ApplyCut(oneak15), "oneak15") return true;
+
+    // W reco
+
+    RecLeptonFormat = leptons.at(0);
+
+    ParticleBaseFormat recoW;
+    recoW += leptons.momentum();
+
+    // w mass selection
+    
+    bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
+    if (not Manager() -> ApplyCut(onshell), "onshell") return true;
+
+    // w pt selection
+    bool wptcut = (recoW.pt() >= minwpt);
+    if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
+
+    // no tight btagged, at most one loose btagged
+
+    // ak15 pt
+    bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
+    if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
+
+    // ak4 lepton deltar
+    bool lepoverlap = false;
+    if (!Ak4jets.empty()) {
+        droverlap = (deltar(Ak4jets.at(0), leptons.at(0)) < 0.4);
+    }
+    if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
+
+    // ak4 ak15 overlap 
+    bool overlap = false;
+    if (!Ak4jets.empty()) {
+        droverlap = (deltar(Ak4jets.at(0), ak15jets.at(0)) < 0.4);
+    }
+    if (not Manager()->ApplyCut(overlap, "overlap")) return true;
 
 }
 
