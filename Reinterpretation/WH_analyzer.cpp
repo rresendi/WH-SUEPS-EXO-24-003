@@ -578,6 +578,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool oneak15 = (ak15jets.size() > 0);
     if (not Manager()->ApplyCut(oneak15), "oneak15") return true;
 
+    double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
+
     // W reco
 
     RecLeptonFormat = leptons.at(0);
@@ -614,6 +616,84 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     }
     if (not Manager()->ApplyCut(overlap, "overlap")) return true;
 
+    // fill all histos
+
+    // w
+
+    Manager()->FillHisto("wmass", recoW.m());
+    Manager()->FillHisto("wpt", recoW.pt());
+    Manager()->FillHisto("weta", recoW.eta());
+    Manager()->FillHisto("wphi", recoW.phi());
+
+    // muons or electrons, depending on which lepton is in the event
+
+    if(muons.size() > 0) {
+        Manager()->FillHisto("muo1pt", muons.at(0).pt());
+        Manager()->FillHisto("muo1eta", muons.at(0).eta());
+        Manager()->FillHisto("muo1phi", muons.at(0).phi());
+    }
+
+    else {
+        Manager()->FillHisto("ele1pt", electrons.at(0).pt());
+        Manager()->FillHisto("ele1eta", electrons.at(0).eta());
+        Manager()->FillHisto("ele1phi", electrons.at(0).phi());
+    }
+
+    // ak4
+
+    Manager()->AddHisto("NJets", Ak4jets.size());
+    Manager()->AddHisto("ak41pt", Ak4jets.at(0).pt());
+    Manager()->AddHisto("ak41eta", Ak4jets.at(0).eta());
+    Manager()->AddHisto("ak41phi", Ak4jets.at(0).phi());
+    Manager()->AddHisto("ak41ntracks", Ak4jets.at(0).ntracks());
+
+    // ak15
+
+    Manager()->FillHisto("ak151pt", Ak15jets.at(0).pt());
+    Manager()->FillHisto("ak151eta", Ak15jets.at(0).eta());
+    double phi_recalc = Ak15jets.at(0).phi();
+    if (phi_recalc > M_PI){
+        phi_recalc -= 2 * M_PI
+    }
+    Manager()->FillHisto("ak151phi", phi_recalc);
+    Manager()->FillHisto("ak151ntracks", ak15jetsconst.at(0).size());
+    Manager()->FillHisto("ak151mass", Ak15jets.at(0).m());
+
+    // extended abcd regions
+
+
+    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
+
+    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
+    
+    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
+
+    if ((30 <= (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
+    
+    // met
+
+    Manager()->FillHisto("metpt" event.rec()->MET().pt());
+    Manager()->FillHisto("metphi" event.rec()->MET().phi());
+    Manager()->FillHisto("meteta" event.rec()->MET().eta());
+
+    // sphericity
+
+    Manager()->FillHisto("sphericity", sphericityval);
+
+    return true
 }
 
 ///////////////////////////////////////////////////////////////
