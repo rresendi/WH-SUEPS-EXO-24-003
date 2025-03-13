@@ -374,16 +374,13 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 
     // add selections //
 
-    /////////////////////////
-    // rename all of these //
-    /////////////////////////
-
-    // Manager()->AddCut("onelep");
-    // Manager()->AddCut("oneAk15");
-    // Manager()->AddCut("wpT");
-    // Manager()->AddCut("noBs");
-    // Manager()->AddCut("Ak15pT");
-    // Manager()->AddCut("deltaR");
+    Manager()->AddCut("orthogonality");
+    Manager()->AddCut("oneak15");
+    Manager()->AddCut("onshell");
+    Manager()->AddCut("wptcut");
+    Manager()->AddCut("noBs");
+    Manager()->AddCut("minak15ptcut");
+    Manager()->AddCut("lepoverlap");
 
     // make histos //
 
@@ -528,13 +525,16 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // orthogonality to ggf offline: remove events with no muons or electrons
 
-    bool noleptons = (electrons.size() == 0 && muons.size() == 0);
+    bool vetonoleptons = (leptons.size() == 0);
 
     // orthogonality to zh: remove events with a pair of OSSF leptons
-    bool noOSSF = (posLeptons.size() == 1 && negLeptons.size() == 1);
+
+    bool SF = (muons.size() == 2 || electrons.size() == 2);
+    bool OS = (posLeptons.size() == 1 && negLeptons.size() == 1);
+    bool OSSF = OS && SF
     
     // apply both orthogonality cuts
-    bool orthogonality = noleptons && noOSSF;
+    bool orthogonality = vetonoleptons && OSSF;
     if (not Manager()->ApplyCut(orthogonality), "orthogonality") return true;
 
 
@@ -542,8 +542,6 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     float const minmetpt = 30;
     float const mindphimetak4 = 1.5;
-
-    // one tight lepton ??
     
     // w
 
@@ -560,12 +558,14 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     float const mintracklepdr = 0.4;
     // missing from pv and puppi weight
 
-    // can't touch b-tagging
+    // btag veto -- for now
+
+    bool noBs = nobtag(Ak4jets);
+    if (not Manager()->ApplyCut(noBs, "noBs")) return true;
 
     // ak-15
 
     float const minak15pt = 60;
-    // missing two tracks
 
     // ak-15 clustering 
 
@@ -596,7 +596,9 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool wptcut = (recoW.pt() >= minwpt);
     if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
 
-    // no tight btagged, at most one loose btagged
+    // btag veto -- best i could do for now
+    bool noBs = 
+
 
     // ak15 pt
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
