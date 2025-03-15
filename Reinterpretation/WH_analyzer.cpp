@@ -4,7 +4,7 @@ using namespace std;
 #include <random>
 #include <Eigen/Dense>
 
-double sphericity(const std::vector<fastjet::PseudoJet>&particles, double r) {
+double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
 
     // check for an empty jet
 
@@ -80,8 +80,8 @@ double sphericity(const std::vector<fastjet::PseudoJet>&particles, double r) {
 
     // grab the two smallest eigenvalues
 
-    eigenval1 = eigenvals[0];
-    eigenval2 = eigenvals[1];
+    double eigenval1 = eigenvals[0];
+    double eigenval2 = eigenvals[1];
 
     // calculate the sphericity
 
@@ -128,7 +128,7 @@ vector<RecLeptonFormat> filtered_muons(vector<RecLeptonFormat> objects, float pt
 
         // d0
 
-        if (fabs(object.d0()) > d0) {
+        if (fabs(obj.d0()) > d0) {
             continue;
         }
 
@@ -140,7 +140,7 @@ vector<RecLeptonFormat> filtered_muons(vector<RecLeptonFormat> objects, float pt
         
 }
 
-vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0, std::string charge = "") {
+vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, float ptmin, float etamax, std::string charge = "") {
     // Selects electrons that pass analysis-level cuts
 
     vector<RecLeptonFormat> filtered;
@@ -159,27 +159,28 @@ vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, floa
         }
 
         // Object Selections
+        double abseta = fabs(obj.eta());
 
         // pT
         if (obj.pt() < ptmin) {
             continue;
         }
 
-        // eta
-        if (fabs(obj.eta()) > etamax) {
+        // eta and impact parameter
+        if (abseta > etamax) {
             continue;
         }
 
-        // dz
-
-        if (fabs(obj.dz()) > dz) {
-            continue;
+        if (abseta > 1.444 && abseta < 1.566) {
+          continue;
         }
 
-        // d0
-
-        if (fabs(object.d0()) > d0) {
-            continue;
+        if(fabs(obj.d0()) > (0.05 + 0.05*(abseta > 1.479))){
+          continue;
+        }
+    
+        if(fabs(obj.dz()) > (0.1 + 0.1*(abseta > 1.479))){
+          continue;
         }
 
         filtered.push_back(obj);
@@ -190,10 +191,10 @@ vector<RecLeptonFormat> filtered_electrons(vector<RecLeptonFormat> objects, floa
         
 }
 
-vector<RecLeptonFormat> filtered_jets(vector<RecLeptonFormat> jets, float ptmin, float etamax, const vector<RecLeptonFormat>& leptons, float deltaRmin) {
+vector<RecJetFormat> filtered_jets(vector<RecJetFormat> jets, float ptmin, float etamax, const vector<RecLeptonFormat>& leptons, float deltaRmin) {
     // Selects jets that pass analysis-level cuts
 
-    vector<RecLeptonFormat> filtered;
+    vector<RecJetFormat> filtered;
 
     for ( auto & jet : jets) {
 
@@ -210,11 +211,11 @@ vector<RecLeptonFormat> filtered_jets(vector<RecLeptonFormat> jets, float ptmin,
         }
 
         // deltaR
-        bool passdeltaR == true;
+        bool passdeltaR = true;
 
         for (const auto & lepton : leptons) {
-            if (jet.dr() <= deltaRmin) {
-                passdeltaR == false
+            if (jet.dr(lepton) <= deltaRmin) {
+                passdeltaR = false;
                 break;
             }
         }
@@ -253,7 +254,7 @@ void leading(std::vector<RecLeptonFormat>& electrons,
              std::vector<RecLeptonFormat>& leptons,
              std::vector<RecLeptonFormat>& posLeptons,
              std::vector<RecLeptonFormat>& negLeptons,
-             std::vector<RecLeptonFormat>& Ak4jets) {
+             std::vector<RecJetFormat>& Ak4jets) {
             
     // Sorting electrons
     std::sort(electrons.begin(), electrons.end(), leadinglep);
@@ -271,7 +272,7 @@ void leading(std::vector<RecLeptonFormat>& electrons,
     std::sort(negLeptons.begin(), negLeptons.end(), leadinglep);
 
     // Sorting jets
-    stdd:sort(Ak4jets.begin(), Ak4jets.end(), leadingjet)
+    std::sort(Ak4jets.begin(), Ak4jets.end(), leadingjet);
 
 }
 
@@ -288,7 +289,7 @@ bool nobtag(vector<RecJetFormat> jets) {
 
 // creating the ak15 jet which models the suep
 
-std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getak15jets(std::vector <recTrackFormat> tracks, std::vector<RecLeptonFormat> leptons, double pt_cut, double eta_cut, double dz_cut, double d0_cut, double dr_cut)
+std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getak15jets(std::vector <RecTrackFormat> tracks, std::vector<RecLeptonFormat> leptons, double pt_cut, double eta_cut, double dz_cut, double d0_cut, double dr_cut)
 {
     // only constructing this jet with particles which pass analysis-level selections
 
@@ -303,7 +304,7 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
             // creating the particles (constituents) which makeup our jet
 
             {
-            fastjet:PsuedoJet particle(track.px(), track.py(), track.pz(), track.e());
+            fastjet::PseudoJet particle(track.px(), track.py(), track.pz(), track.e());
             input_particles.emplace_bark(particle);
             }
     }
@@ -438,9 +439,9 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("ABCD_SR4", 20, 80.0, 100.0);
 
     // for met //
-    Manager()->AddHisto("metpt" 500, 0.0, 500.0);
-    Manager()->AddHisto("metphi" 40, -3.14, 3.14);
-    Manager()->AddHisto("meteta" 40, -5.0, 5.0);
+    Manager()->AddHisto("metpt", 500, 0.0, 500.0);
+    Manager()->AddHisto("metphi", 40, -3.14, 3.14);
+    Manager()->AddHisto("meteta", 40, -5.0, 5.0);
 
     // sphericity //
     Manager()->AddHisto("sphericity", 50, 0.0, 1.0);
@@ -468,8 +469,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     float const muon_minpt = 30;
     float const muon_maxeta = 2.4;
-    float const d0 = 0.02;
-    float const dz = 0.05;
+    float const muon_dz = 0.05;
+    float const muon_d0 = 0.02;
     // missing: id and isolation
 
     // for ak4jets
@@ -482,7 +483,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // adding weights
 
     double weight = 1.;
-    if (!Configution().IsNoEventWeight(). && event.mc()!=0) {
+    if (!Configuration().IsNoEventWeight() && event.mc()!=0) {
         weight = event.mc()->weight;
     }
 
@@ -501,23 +502,28 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // electrons
     vector<RecLeptonFormat> electrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta);
     vector<RecLeptonFormat> posElectrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta, "+");
-    vector<RecLeptonFormat> negeElectrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta, "-");
+    vector<RecLeptonFormat> negElectrons = filtered_electrons(event.rec()->electrons(), electron_minpt, electron_maxeta, "-");
 
     // muons
-    vector<RecLeptonFormat> muons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta);
-    vector<RecLeptonFormat> posMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, "+");
-    vector<RecLeptonFormat> negMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, "-");
+    vector<RecLeptonFormat> muons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, muon_dz, muon_dz);
+    vector<RecLeptonFormat> posMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, muon_dz, muon_d0, "+");
+    vector<RecLeptonFormat> negMuons = filtered_muons(event.rec()->muons(), muon_minpt, muon_maxeta, muon_dz, muon_d0, "-");
 
 
     // leptons (combined electrons and muons)
     vector<RecLeptonFormat> leptons = electrons;
     leptons.insert(leptons.end(), muons.begin(), muons.end());
+    vector<RecLeptonFormat> posLeptons = posElectrons;
+    posLeptons.insert(posLeptons.end(), posMuons.begin(), posMuons.end());
+    vector<RecLeptonFormat> negLeptons = negElectrons;
+    negLeptons.insert(negLeptons.end(), negMuons.begin(), negMuons.end());
+
 
     // jets
-    vector<RecLeptonFormat> Ak4jets = filtered_electrons(event.rec()->jets(), ak4_minpt, ak4_maxeta, leptons, ak4lep_deltar);
+    vector<RecJetFormat> Ak4jets = filtered_jets(event.rec()->jets(), ak4_minpt, ak4_maxeta, leptons, ak4lep_deltar);
 
     // sorting all objects
-    leading(electrons, posElectrons, negeElectrons, muons, posMuons, negMuons, leptons, Ak4jets);
+    leading(electrons, posElectrons, negElectrons, muons, posMuons, negMuons, leptons, posLeptons, negLeptons, Ak4jets);
 
     //////////////////////////////////////////////
     //           event level selections         //
@@ -531,11 +537,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     bool SF = (muons.size() == 2 || electrons.size() == 2);
     bool OS = (posLeptons.size() == 1 && negLeptons.size() == 1);
-    bool OSSF = OS && SF
+    bool orthogonality = OS && SF
     
     // apply both orthogonality cuts
     bool orthogonality = vetonoleptons && OSSF;
-    if (not Manager()->ApplyCut(orthogonality), "orthogonality") return true;
+    if (not Manager()->ApplyCut(orthogonality, "orthogonality")) return true;
 
 
     // met selections
@@ -576,29 +582,25 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // need at least one cluster
     bool oneak15 = (ak15jets.size() > 0);
-    if (not Manager()->ApplyCut(oneak15), "oneak15") return true;
+    if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
 
     double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
 
     // W reco
 
-    RecLeptonFormat = leptons.at(0);
+    RecLeptonFormat lepton = leptons.at(0);
 
     ParticleBaseFormat recoW;
-    recoW += leptons.momentum();
+    recoW += lepton.momentum();
 
     // w mass selection
     
     bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
-    if (not Manager() -> ApplyCut(onshell), "onshell") return true;
+    if (not Manager() -> ApplyCut(onshell, "onshell")) return true;
 
     // w pt selection
     bool wptcut = (recoW.pt() >= minwpt);
     if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
-
-    // btag veto -- best i could do for now
-    bool noBs = 
-
 
     // ak15 pt
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
@@ -643,59 +645,58 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // ak4
 
-    Manager()->AddHisto("NJets", Ak4jets.size());
-    Manager()->AddHisto("ak41pt", Ak4jets.at(0).pt());
-    Manager()->AddHisto("ak41eta", Ak4jets.at(0).eta());
-    Manager()->AddHisto("ak41phi", Ak4jets.at(0).phi());
-    Manager()->AddHisto("ak41ntracks", Ak4jets.at(0).ntracks());
+    Manager()->FillHisto("NJets", Ak4jets.size());
+    Manager()->FillHisto("ak41pt", Ak4jets.at(0).pt());
+    Manager()->FillHisto("ak41eta", Ak4jets.at(0).eta());
+    Manager()->FillHisto("ak41phi", Ak4jets.at(0).phi());
+    Manager()->FillHisto("ak41ntracks", Ak4jets.at(0).ntracks());
 
     // ak15
 
-    Manager()->FillHisto("ak151pt", Ak15jets.at(0).pt());
-    Manager()->FillHisto("ak151eta", Ak15jets.at(0).eta());
-    double phi_recalc = Ak15jets.at(0).phi();
+    Manager()->FillHisto("ak151pt", ak15jets.at(0).pt());
+    Manager()->FillHisto("ak151eta", ak15jets.at(0).eta());
+    double phi_recalc = ak15jets.at(0).phi();
     if (phi_recalc > M_PI){
-        phi_recalc -= 2 * M_PI
+        phi_recalc -= 2 * M_PI;
     }
     Manager()->FillHisto("ak151phi", phi_recalc);
     Manager()->FillHisto("ak151ntracks", ak15jetsconst.at(0).size());
-    Manager()->FillHisto("ak151mass", Ak15jets.at(0).m());
+    Manager()->FillHisto("ak151mass", ak15jets.at(0).m());
 
     // extended abcd regions
 
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) && (0.3 <= sphericityval && sphericityval < 0.4)) {Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= sphericityval && sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 100) &&  (0.3 <= sphericityval && sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
 
-    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.3 <= sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
-    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
-
-    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.4 <= sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 100) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
     
-    if ((10 <= (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
 
-    if ((30 <= (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) < 100) &&  (0.5 <= sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 100) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
     
     // met
 
-    Manager()->FillHisto("metpt" event.rec()->MET().pt());
-    Manager()->FillHisto("metphi" event.rec()->MET().phi());
-    Manager()->FillHisto("meteta" event.rec()->MET().eta());
+    Manager()->FillHisto("metpt", event.rec()->MET().pt());
+    Manager()->FillHisto("metphi", event.rec()->MET().phi());
+    Manager()->FillHisto("meteta", event.rec()->MET().eta());
 
     // sphericity
 
     Manager()->FillHisto("sphericity", sphericityval);
 
-    return true
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////
@@ -703,4 +704,4 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 //    function called one time at the end of the analysis    //
 ///////////////////////////////////////////////////////////////
 
-void user::Finalize(const SampleFormat& summary, const std::vector<SampleFormat>& files)
+void user::Finalize(const SampleFormat& summary, const std::vector<SampleFormat>& files){}
