@@ -40,7 +40,7 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
         S_xz += px * pz * weight;
         S_yy += py * py * weight;
         S_yz += py * pz * weight;
-        S_zz += pz * pz + weight;
+        S_zz += pz * pz * weight;
 
         // calculating the normalization for the components
         norm += std::pow(p, r);
@@ -69,7 +69,7 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(S);
     if (solver.info()!= Eigen::Success) {
-        std::cerr << "Could not calculate eigenvalues..." std::endl;
+        std::cerr << "Could not calculate eigenvalues..." << std::endl;
         return 0.0;
     }
 
@@ -291,21 +291,21 @@ bool nobtag(vector<RecJetFormat> jets) {
 
 std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getak15jets(std::vector <RecTrackFormat> tracks, std::vector<RecLeptonFormat> leptons, double pt_cut, double eta_cut, double dz_cut, double d0_cut, double dr_cut)
 {
+    std::vector<fastjet::PseudoJet> input_particles;
+
     // only constructing this jet with particles which pass analysis-level selections
 
-    for (const auto &tracks : track) {
-        if (
-            track.pt() >= pt_cut && 
-            std::abs(track.eta()) <= eta_cut &&
-            track.dr(leptons.at(0)) >= dr_cut &&
-            track.dr(leptons.at(1)) >= dr_cut &&
+    for (const auto &track : tracks) {
+        if (track.pt() >= pt_cut && std::abs(track.eta()) <= eta_cut &&
+            std::abs(track.d0()) < d0_cut && std::abs(track.dz()) < dz_cut && 
+            track.dr(leptons.at(0)) >= dr_cut && track.dr(leptons.at(1)) >= dr_cut
             )
 
             // creating the particles (constituents) which makeup our jet
 
             {
             fastjet::PseudoJet particle(track.px(), track.py(), track.pz(), track.e());
-            input_particles.back(particle);
+            input_particles.emplace_back(particle);
             }
     }
 
@@ -316,7 +316,7 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
 
     // again, sort by pt
 
-    std::vector<fastjet::PseudoJet> inclusive_jets = sorted_by_pt(clust_seq.inclusive_jets(0.0));
+    std::vector<fastjet::PseudoJet> inclusive_jets = sorted_by_pt(cluster_seq.inclusive_jets(0.0));
 
     // create a 2d vector which stores jets and their constiuents
 
@@ -382,6 +382,8 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddCut("noBs");
     Manager()->AddCut("minak15ptcut");
     Manager()->AddCut("lepoverlap");
+    Manager()->AddCut("metptcut");
+    Manager()->AddCut("mindphimetak4cut");
 
     // make histos //
 
@@ -484,7 +486,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     double weight = 1.;
     if (!Configuration().IsNoEventWeight() && event.mc()!=0) {
-        weight = event.mc()->weight;
+        weight = event.mc()->weight();
     }
 
     Manager()->InitializeForNewEvent(weight);
@@ -518,7 +520,6 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     vector<RecLeptonFormat> negLeptons = negElectrons;
     negLeptons.insert(negLeptons.end(), negMuons.begin(), negMuons.end());
 
-
     // jets
     vector<RecJetFormat> Ak4jets = filtered_jets(event.rec()->jets(), ak4_minpt, ak4_maxeta, leptons, ak4lep_deltar);
 
@@ -548,6 +549,16 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     float const minmetpt = 30;
     float const mindphimetak4 = 1.5;
+
+    bool metptcut = (event.rec()->MET().pt() >= minmetpt);
+    if (!Manager()->ApplyCut(metptcut, "metptcut")) return true;
+
+    float dphi_ak4_met = fabs(event.rec()->MET().phi() - Ak4jets.at(0).phi());
+    if (dphi_ak4_met > M_PI) {
+        dphi_ak4_met = 2*M_PI - dphi_ak4_met;
+        }
+    bool mindphimetak4cut = (dphi_ak4_met >= mindphimetak4);
+    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4")) return true;
     
     // w
 
@@ -577,8 +588,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     auto ak15jetsout = getak15jets(event.rec()->tracks(), leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
 
-    std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first
-    std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second
+    std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first;
+    std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second;
 
     // need at least one cluster
     bool oneak15 = (ak15jets.size() > 0);
