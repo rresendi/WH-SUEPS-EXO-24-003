@@ -68,7 +68,7 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
     // get sphericity matrix eigenvalues
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(S);
-    if (solver.info() =! Eigen::Success) {
+    if (solver.info()!= Eigen::Success) {
         std::cerr << "Could not calculate eigenvalues..." std::endl;
         return 0.0;
     }
@@ -305,7 +305,7 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
 
             {
             fastjet::PseudoJet particle(track.px(), track.py(), track.pz(), track.e());
-            input_particles.emplace_bark(particle);
+            input_particles.back(particle);
             }
     }
 
@@ -340,7 +340,7 @@ double deltar(const RecJetFormat& rec_jet, const fastjet::PseudoJet& pseudo_jet)
     double rec_phi = rec_jet.phi();
 
     double pseudo_eta = pseudo_jet.eta();
-    double pseudo_phi - pseudo_jet.phi();
+    double pseudo_phi = pseudo_jet.phi();
 
     // wrap arounds
     if (pseudo_phi > M_PI) {
@@ -537,10 +537,10 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     bool SF = (muons.size() == 2 || electrons.size() == 2);
     bool OS = (posLeptons.size() == 1 && negLeptons.size() == 1);
-    bool orthogonality = OS && SF
+    bool OSSF = OS && SF;
     
     // apply both orthogonality cuts
-    bool orthogonality = vetonoleptons && OSSF;
+    bool orthogonality = (!vetonoleptons) && (!OSSF);
     if (not Manager()->ApplyCut(orthogonality, "orthogonality")) return true;
 
 
@@ -592,6 +592,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     ParticleBaseFormat recoW;
     recoW += lepton.momentum();
+    recoW += event.rec()->MET().momentum();
 
     // w mass selection
     
@@ -609,14 +610,14 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak4 lepton deltar
     bool lepoverlap = false;
     if (!Ak4jets.empty()) {
-        droverlap = (deltar(Ak4jets.at(0), leptons.at(0)) < 0.4);
+        lepoverlap = (deltar(Ak4jets.at(0), leptons.at(0)) < 0.4);
     }
     if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
 
     // ak4 ak15 overlap 
     bool overlap = false;
     if (!Ak4jets.empty()) {
-        droverlap = (deltar(Ak4jets.at(0), ak15jets.at(0)) < 0.4);
+        overlap = (deltar(Ak4jets.at(0), ak15jets.at(0)) < 0.4);
     }
     if (not Manager()->ApplyCut(overlap, "overlap")) return true;
 
