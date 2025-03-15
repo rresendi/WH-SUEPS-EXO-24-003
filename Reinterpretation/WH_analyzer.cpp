@@ -621,13 +621,14 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak4 lepton deltar
     bool lepoverlap = false;
     if (!Ak4jets.empty()) {
-        lepoverlap = (deltar(Ak4jets.at(0), leptons.at(0)) < 0.4);
+        fastjet::PseudoJet lep(leptons.at(0).px(), leptons.at(0).py(), leptons.at(0).pz(), leptons.at(0).e());
+        lepoverlap = (deltar(Ak4jets.at(0), lep) < 0.4);
     }
     if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
 
     // ak4 ak15 overlap 
     bool overlap = false;
-    if (!Ak4jets.empty()) {
+    if (!Ak4jets.empty() && !ak15jets.empty()) {
         overlap = (deltar(Ak4jets.at(0), ak15jets.at(0)) < 0.4);
     }
     if (not Manager()->ApplyCut(overlap, "overlap")) return true;
