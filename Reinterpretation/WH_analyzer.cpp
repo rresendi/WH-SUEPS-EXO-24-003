@@ -298,7 +298,7 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
     for (const auto &track : tracks) {
         if (track.pt() >= pt_cut && std::abs(track.eta()) <= eta_cut &&
             std::abs(track.d0()) < d0_cut && std::abs(track.dz()) < dz_cut && 
-            track.dr(leptons.at(0)) >= dr_cut && track.dr(leptons.at(1)) >= dr_cut
+            track.dr(leptons.at(0)) >= dr_cut
             )
 
             // creating the particles (constituents) which makeup our jet
