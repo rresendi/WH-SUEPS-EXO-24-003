@@ -376,14 +376,16 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     // add selections //
 
     Manager()->AddCut("orthogonality");
+    Manager()->AddCut("metptcut");
+    Manager()->AddCut("mindphimetak4cut");
+    Manager()->AddCut("noBs");
     Manager()->AddCut("oneak15");
     Manager()->AddCut("onshell");
     Manager()->AddCut("wptcut");
-    Manager()->AddCut("noBs");
     Manager()->AddCut("minak15ptcut");
     Manager()->AddCut("lepoverlap");
-    Manager()->AddCut("metptcut");
-    Manager()->AddCut("mindphimetak4cut");
+    Manager()->AddCut("overlap");
+
 
     // make histos //
 
@@ -558,7 +560,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         dphi_ak4_met = 2*M_PI - dphi_ak4_met;
         }
     bool mindphimetak4cut = (dphi_ak4_met >= mindphimetak4);
-    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4")) return true;
+    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4cut")) return true;
     
     // w
 
@@ -617,7 +619,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak15 pt
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
     if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
-
+    
     // ak4 lepton deltar
     bool lepoverlap = false;
     if (!Ak4jets.empty()) {
