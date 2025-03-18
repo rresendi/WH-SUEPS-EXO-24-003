@@ -395,37 +395,37 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     // make histos //
 
     // for the w //
-    Manager()->AddHisto("wmass", 60, 0.0, 120.0);
+    Manager()->AddHisto("wmass", 60, 0.0, 140.0);
     Manager()->AddHisto("wpt", 500, 0.0, 500.0);
-    Manager()->AddHisto("weta", 50,-2.5,2.5);
-    Manager()->AddHisto("wphi", 50,-2.5,2.5);
+    Manager()->AddHisto("weta", 100,-3.14,3.14);
+    Manager()->AddHisto("wphi", 100,-3.14,3.14);
 
     // for the leading lepton //
     Manager()->AddHisto("lep1pt", 500, 0.0, 500.0);
-    Manager()->AddHisto("lep1eta", 50,-2.5,2.5);
-    Manager()->AddHisto("lep1phi", 50,-2.5,2.5);
+    Manager()->AddHisto("lep1eta", 100,-3.14,3.14);
+    Manager()->AddHisto("lep1phi", 100,-3.14,3.14);
 
     // for the leading muon //
     Manager()->AddHisto("muo1pt", 500, 0.0, 500.0);
-    Manager()->AddHisto("muo1eta", 50,-2.5,2.5);
-    Manager()->AddHisto("muo1phi", 50,-2.5,2.5);
+    Manager()->AddHisto("muo1eta", 100,-3.14,3.14);
+    Manager()->AddHisto("muo1phi", 100,-3.14,3.14);
 
     // for the leading electron //
     Manager()->AddHisto("ele1pt", 500, 0.0, 500.0);
-    Manager()->AddHisto("ele1eta", 50,-2.5,2.5);
-    Manager()->AddHisto("ele1phi", 50,-2.5,2.5);
+    Manager()->AddHisto("ele1eta", 100,-3.14,3.14);
+    Manager()->AddHisto("ele1phi", 100,-3.14,3.14);
 
     // for the ak4jets //
     Manager()->AddHisto("NJets", 10,0.0,10.0);
     Manager()->AddHisto("ak41pt", 500,0.0,500.0);
-    Manager()->AddHisto("ak41eta", 100,-5.0,5.0);
-    Manager()->AddHisto("ak41phi", 40,-3.14,3.14);
+    Manager()->AddHisto("ak41eta", 100,-3.14,3.14);
+    Manager()->AddHisto("ak41phi", 100,-3.14,3.14);
     Manager()->AddHisto("ak41ntracks", 100,0.0,100.0);
 
     // for the ak15 jets //
     Manager()->AddHisto("ak151pt", 500,0.0,500.0);
-    Manager()->AddHisto("ak151eta", 100,-5.0,5.0);
-    Manager()->AddHisto("ak151phi", 40,-3.14,3.14);
+    Manager()->AddHisto("ak151eta", 100,-3.14,3.14);
+    Manager()->AddHisto("ak151phi", 100,-3.14,3.14);
     Manager()->AddHisto("ak151ntracks", 100,0.0,100.0);
     Manager()->AddHisto("ak151mass", 400,0,400);
 
@@ -449,8 +449,8 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 
     // for met //
     Manager()->AddHisto("metpt", 500, 0.0, 500.0);
-    Manager()->AddHisto("metphi", 40, -3.14, 3.14);
-    Manager()->AddHisto("meteta", 40, -5.0, 5.0);
+    Manager()->AddHisto("metphi", 100, -3.14, 3.14);
+    Manager()->AddHisto("meteta", 100, -3.14,3.14);
 
     // sphericity //
     Manager()->AddHisto("sphericity", 50, 0.0, 1.0);
@@ -777,6 +777,10 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     }
 
    // fill lepton histos
+   Manager()->FillHisto("lep1pt", leptons.at(0).pt());
+   Manager()->FillHisto("lep1eta", leptons.at(0).eta());
+   Manager()->FillHisto("lep1phi", leptons.at(0).phi());
+
    
     // ak4
 
