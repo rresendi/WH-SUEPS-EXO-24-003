@@ -1,5 +1,4 @@
 #include "SampleAnalyzer/User/Analyzer/user.h"
-#include "/eos/user/r/rresendi/madanalysis5/tools/SampleAnalyzer/Process/RegionSelection/RegionSelectionManager.h"
 using namespace MA5;
 using namespace std;
 #include <random>
