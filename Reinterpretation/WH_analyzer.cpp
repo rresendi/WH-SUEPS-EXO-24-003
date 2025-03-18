@@ -561,6 +561,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool metptcut = (event.rec()->MET().pt() >= minmetpt);
     if (!Manager()->ApplyCut(metptcut, "metptcut")) return true;
 
+    if (Ak4jets.size() < 1) {
+        std::cout << "Event rejected: Less than 1 AK4 jet present." << std::endl;
+        return true;
+    }
+
     float dphi_ak4_met = fabs(event.rec()->MET().phi() - Ak4jets.at(0).phi());
     if (dphi_ak4_met > M_PI) {
         dphi_ak4_met = 2*M_PI - dphi_ak4_met;
