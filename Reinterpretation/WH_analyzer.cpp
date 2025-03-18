@@ -1,11 +1,12 @@
 #include "SampleAnalyzer/User/Analyzer/user.h"
+#include "/eos/user/r/rresendi/madanalysis5/tools/SampleAnalyzer/Process/RegionSelection/RegionSelectionManager.h"
 using namespace MA5;
 using namespace std;
 #include <random>
 #include <Eigen/Dense>
 
 double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
-
+    std::cout << "Inside sphericity(). Input vector size: " << particles.size() << ", r = " << r << std::endl;
     // check for an empty jet
 
     if (particles.empty()) {
@@ -26,8 +27,12 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
         double py = particle.py();
         double pz = particle.pz();
         double p = std::sqrt( px * px + py * py + pz * pz);
+        std::cout << "Particle px: " << px << ", py: " << py << ", pz: " << pz << ", p: " << p << std::endl;
 
-        if (p == 0) continue;
+        if (p == 0) {
+            std::cerr << "Warning: Found particle with zero momentum! Skipping." << std::endl;
+            continue;
+        }
         
         // calculating the weight
 
@@ -44,6 +49,7 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
 
         // calculating the normalization for the components
         norm += std::pow(p, r);
+        std::cout << "Final norm before normalization: " << norm << std::endl;
 
     }
 
@@ -66,7 +72,7 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
          S_xz, S_yz, S_zz;
 
     // get sphericity matrix eigenvalues
-
+    std::cout << "Sphericity matrix: " << S << std::endl;
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(S);
     if (solver.info()!= Eigen::Success) {
         std::cerr << "Could not calculate eigenvalues..." << std::endl;
@@ -74,9 +80,10 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
     }
 
     // sort the eigenvalues
-
     Eigen::Vector3d eigenvals = solver.eigenvalues();
+    std::cout << "Eigenvalues: " << eigenvals.transpose() << std::endl;
     std::sort(eigenvals.data(), eigenvals.data() + eigenvals.size());
+    std::cout << "Sorted eigenvalues: " << eigenvals[0] << ", " << eigenvals[1] << ", " << eigenvals[2] << std::endl;
 
     // grab the two smallest eigenvalues
 
@@ -386,7 +393,6 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddCut("lepoverlap");
     Manager()->AddCut("overlap");
 
-
     // make histos //
 
     // for the w //
@@ -588,52 +594,141 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // ak-15 clustering 
 
+    // ak-15 clustering
+    std::cout << "Tracks size: " << event.rec()->tracks().size() << std::endl;
+    std::cout << "Leptons size: " << leptons.size() << std::endl;
+    std::cout << "Mintrackpt: " << mintrackpt << std::endl;
+    std::cout << "Maxtracketa: " << maxtracketa << std::endl;
+    std::cout << "Maxtrackdz: " << maxtrackdz << std::endl;
+    std::cout << "Maxtrackd0: " << maxtrackd0 << std::endl;
+    std::cout << "Mintracklepdr: " << mintracklepdr << std::endl;
+    std::cout << "Calling getak15jets..." << std::endl;
     auto ak15jetsout = getak15jets(event.rec()->tracks(), leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
+    std::cout << "getak15jets finished executing." << std::endl;
 
+
+    std::cout << "Size of ak15jetsout.first: " << ak15jetsout.first.size() << std::endl;
+    std::cout << "Size of ak15jetsout.second: " << ak15jetsout.second.size() << std::endl;
+
+    // Ensure we have at least 2 elements before accessing index 1
+    if (ak15jetsout.first.size() < 2) {
+        std::cerr << "Error: getak15jets returned a vector with insufficient elements (size = " 
+                << ak15jetsout.first.size() << ")" << std::endl;
+        return false;
+    }
+
+    // Assign values only if the size is sufficient
+    std::cout << "Assigning ak15jets and ak15jetsconst..." << std::endl;
     std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first;
+    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
     std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second;
+    std::cout << "ak15jetsconst size: " << ak15jetsconst.size() << std::endl;
+
+    std::cout << "Printing ak15jets elements:" << std::endl;
+    for (size_t i = 0; i < ak15jets.size(); i++) {
+        std::cout << "Jet " << i << " pt: " << ak15jets[i].pt() << std::endl;
+    }
+
+    std::cout << "Printing ak15jetsconst elements:" << std::endl;
+    for (size_t i = 0; i < ak15jetsconst.size(); i++) {
+        if (ak15jetsconst[i].empty()) {
+            std::cerr << "WARNING: ak15jetsconst[" << i << "] is empty!" << std::endl;
+        } else {
+            std::cout << "ak15jetsconst[" << i << "] size: " << ak15jetsconst[i].size() << std::endl;
+        }
+    }
 
     // need at least one cluster
     bool oneak15 = (ak15jets.size() > 0);
     if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
-
+    std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
     double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
+    std::cout << "Sphericity calculated: " << sphericityval << std::endl;
 
-    // W reco
+   // Check leptons exist
+    if (leptons.empty()) {
+        std::cerr << "ERROR: No leptons found! Cannot reconstruct W." << std::endl;
+        return false;
+    }
+    std::cout << "Lepton px: " << leptons.at(0).px() 
+            << " py: " << leptons.at(0).py() 
+            << " pz: " << leptons.at(0).pz() 
+            << " E: " << leptons.at(0).e() << std::endl;
 
-    RecLeptonFormat lepton = leptons.at(0);
+    // Check MET exists
+    if (!event.rec()) {
+        std::cerr << "ERROR: event.rec() is NULL!" << std::endl;
+        return false;
+    }
+    std::cout << "MET px: " << event.rec()->MET().px() 
+            << " py: " << event.rec()->MET().py() 
+            << " pz: " << event.rec()->MET().pz() 
+            << " E: " << event.rec()->MET().e() << std::endl;
 
+    // W reconstruction
     ParticleBaseFormat recoW;
-    recoW += lepton.momentum();
+    recoW += leptons.at(0).momentum();
     recoW += event.rec()->MET().momentum();
 
-    // w mass selection
-    
-    bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
-    if (not Manager() -> ApplyCut(onshell, "onshell")) return true;
-
-    // w pt selection
-    bool wptcut = (recoW.pt() >= minwpt);
+    std::cout << "W candidate mass: " << recoW.m() << std::endl;
+    bool wptcut = (ak15jets.at(0).pt() > minwpt);
     if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
 
+    // W mass selection
+    std::cout << "Calling ApplyCut for onshell on event " << "..." << std::endl;
+
+    if (!Manager()) {
+        std::cerr << "ERROR: Manager() is null!" << std::endl;
+        return false;
+    }
+
+    // W mass selection
+    std::cout << "Calling ApplyCut for onshell..." << std::endl;
+    bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
+    std::cout << "W mass: " << recoW.m() << std::endl;
+    std::cout << "Applying cut: onshell" << std::endl;
+    if (!Manager()->ApplyCut(onshell, "onshell")) {
+        std::cout << "Cut failed: onshell" << std::endl;
+        return true;
+    }
+
+
     // ak15 pt
+    std::cout << "Checking if ak15jets is empty..." << std::endl;
+    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
+    if (!ak15jets.empty()) {
+        std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    } else {
+        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
+    }
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
+    std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
     if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
-    
-    // ak4 lepton deltar
+
+    // ak4 lepton deltaR
+    std::cout << "Checking deltaR for Ak4jets..." << std::endl;
+    std::cout << "Ak4jets size: " << Ak4jets.size() << std::endl;
+    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
     bool lepoverlap = false;
-    if (!Ak4jets.empty()) {
-        fastjet::PseudoJet lep(leptons.at(0).px(), leptons.at(0).py(), leptons.at(0).pz(), leptons.at(0).e());
-        lepoverlap = (deltar(Ak4jets.at(0), lep) < 0.4);
+    if (!Ak4jets.empty() && !ak15jets.empty()) {
+        std::cout << "Calculating deltaR between Ak4jets[0] and ak15jets[0]..." << std::endl;
+        double deltaRvalue = deltar(Ak4jets.at(0), ak15jets.at(0));
+        std::cout << "deltaR calculated: " << deltaRvalue << std::endl;
+        lepoverlap = (deltaRvalue < 0.4);
+    } else {
+        std::cerr << "WARNING: Skipping deltaR because one or both jet vectors are empty!" << std::endl;
     }
     if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
 
-    // ak4 ak15 overlap 
+    // ak4 ak15 overlap
     bool overlap = false;
     if (!Ak4jets.empty() && !ak15jets.empty()) {
+        std::cout << "Checking deltaR for Ak4jets and ak15jets..." << std::endl;
         overlap = (deltar(Ak4jets.at(0), ak15jets.at(0)) < 0.4);
     }
     if (not Manager()->ApplyCut(overlap, "overlap")) return true;
+
+    std::cout << "all cuts successfully applied" << std::endl;
 
     // fill all histos
 
@@ -678,6 +773,9 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     Manager()->FillHisto("ak151ntracks", ak15jetsconst.at(0).size());
     Manager()->FillHisto("ak151mass", ak15jets.at(0).m());
 
+    std::cout << "all histos successfully filled" << std::endl;
+
+
     // extended abcd regions
 
     if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) && (0.3 <= sphericityval && sphericityval < 0.4)) {Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
@@ -700,6 +798,9 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
     if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
     if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 100) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
+
+    std::cout << "all abcd successfully made" << std::endl;
+
     
     // met
 
@@ -710,6 +811,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // sphericity
 
     Manager()->FillHisto("sphericity", sphericityval);
+
+    std::cout << "finished" << std::endl;
 
     return true;
 }
