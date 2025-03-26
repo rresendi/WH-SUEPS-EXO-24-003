@@ -4,6 +4,75 @@ using namespace std;
 #include <random>
 #include <Eigen/Dense>
 
+double iso(vector<RecLeptonFormat> leptons, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, double iso_minpt, std::string iso = "")
+{
+    std::cout << "Inside iso()" << std::endl;
+    std::cout << "lep size in iso(): " << leptons.size() << std::endl;
+
+    if (leptons.size() == 0) {
+        std::cout << "No leptons to process for iso." << std::endl;
+        return 0;
+    }
+
+    float deltaRmax = 0.4;
+    float ratiomax = 0.0;
+
+    // to be played with
+    if (iso == "WP90") {
+        ratiomax = 1000000;
+        }
+    else if (iso == "WP80") {
+        ratiomax = 1000000;
+        }
+    else if (iso == "pfIso2") {
+        ratiomax = 1000000;
+        }
+    else if (iso == "pfIso5") {
+        ratiomax = 1000000;
+        }
+
+    std::cout << "ratiomax has been set to: " << ratiomax << std::endl;
+    std::cout << "Tracks size: " << tracks.size() << std::endl;
+    std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
+    std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
+
+
+    for (const auto & lepton : leptons) {
+        float lep1pt = lepton.pt();
+        float totalpt = 0.0;
+        for (const auto & track : tracks){
+            // std::cout << "track pt: " << track.pt() << "track lep dr: " << lepton.dr(track) << std::endl;
+            if ((lepton.dr(track) < deltaRmax) && track.pt() > iso_minpt) {
+                // std::cout << "track pt: " << track.pt() << std::endl;
+                totalpt += track.pt();
+            }
+        }
+        for (const auto & photon : eflowPhotons){
+            // std::cout << "photon pt: " << photon.pt() << "photon lep dr: " << lepton.dr(photon) << std::endl;
+            if ((lepton.dr(photon) < deltaRmax) && photon.pt() > iso_minpt) {
+                // std::cout << "photon pt: " << photon.pt() << std::endl;
+                totalpt += photon.pt();
+            }
+        }
+        for (const auto & neutral : eflowNeutralHadrons){
+            // std::cout << "neutral pt: " << neutral.pt() << "neutral lep dr: " << lepton.dr(neutral) << std::endl;
+            if ((lepton.dr(neutral) < deltaRmax) && neutral.pt() > iso_minpt) {
+                // std::cout << "neutral pt: " << neutral.pt() << std::endl;
+                totalpt += neutral.pt();
+            }
+        }
+        std::cout << "lep1pt: " << lep1pt << ", totalpt: " << totalpt << std::endl;
+        float pt_ratio = totalpt / lep1pt;
+        std::cout << "pt_ratio: " << pt_ratio << std::endl;
+        if (pt_ratio > ratiomax) {
+            std::cout << "returning 0" << std::endl;
+            return 0;
+        }
+    }
+    std::cout << "returning 1" << std::endl;
+    return 1;
+}
+
 double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
     // std::cout << "Inside sphericity(). Input vector size: " << particles.size() << ", r = " << r << std::endl;
     // check for an empty jet
