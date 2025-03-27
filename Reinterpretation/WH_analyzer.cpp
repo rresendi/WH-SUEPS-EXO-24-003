@@ -48,11 +48,11 @@ std::vector<fastjet::PseudoJet> boost_to_jet_frame(const std::vector<fastjet::Ps
 
 double iso(vector<RecLeptonFormat> leptons, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, double iso_minpt, std::string iso = "")
 {
-    std::cout << "Inside iso()" << std::endl;
-    std::cout << "lep size in iso(): " << leptons.size() << std::endl;
+    // std::cout << "Inside iso()" << std::endl;
+    // std::cout << "lep size in iso(): " << leptons.size() << std::endl;
 
     if (leptons.size() == 0) {
-        std::cout << "No leptons to process for iso." << std::endl;
+        // std::cout << "No leptons to process for iso." << std::endl;
         return 0;
     }
 
@@ -73,10 +73,10 @@ double iso(vector<RecLeptonFormat> leptons, std::vector <RecTrackFormat> tracks,
         ratiomax = 1000000;
         }
 
-    std::cout << "ratiomax has been set to: " << ratiomax << std::endl;
-    std::cout << "Tracks size: " << tracks.size() << std::endl;
-    std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
-    std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
+    // std::cout << "ratiomax has been set to: " << ratiomax << std::endl;
+    // std::cout << "Tracks size: " << tracks.size() << std::endl;
+    // std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
+    // std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
 
 
     for (const auto & lepton : leptons) {
@@ -103,15 +103,15 @@ double iso(vector<RecLeptonFormat> leptons, std::vector <RecTrackFormat> tracks,
                 totalpt += neutral.pt();
             }
         }
-        std::cout << "lep1pt: " << lep1pt << ", totalpt: " << totalpt << std::endl;
+        // std::cout << "lep1pt: " << lep1pt << ", totalpt: " << totalpt << std::endl;
         float pt_ratio = totalpt / lep1pt;
-        std::cout << "pt_ratio: " << pt_ratio << std::endl;
+        // std::cout << "pt_ratio: " << pt_ratio << std::endl;
         if (pt_ratio > ratiomax) {
-            std::cout << "returning 0" << std::endl;
+            // std::cout << "returning 0" << std::endl;
             return 0;
         }
     }
-    std::cout << "returning 1" << std::endl;
+    // std::cout << "returning 1" << std::endl;
     return 1;
 }
 
@@ -211,7 +211,7 @@ vector<RecLeptonFormat> filtered_loose_muons(vector<RecLeptonFormat> objects, fl
     // Selects loose muons that pass analysis-level cuts
 
     vector<RecLeptonFormat> filtered;
-    std::cout << "object size: " << objects.size() << std::endl;
+    // std::cout << "object size: " << objects.size() << std::endl;
 
 
     for (auto & obj : objects) {
@@ -254,28 +254,28 @@ vector<RecLeptonFormat> filtered_loose_muons(vector<RecLeptonFormat> objects, fl
             continue;
         }
 
-        std::cout << "Before iso call, obj pt: " << obj.pt() << ", eta: " << obj.eta() << std::endl;
-        std::cout << "Tracks size: " << tracks.size() << std::endl;
-        std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
-        std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
+        // std::cout << "Before iso call, obj pt: " << obj.pt() << ", eta: " << obj.eta() << std::endl;
+        // std::cout << "Tracks size: " << tracks.size() << std::endl;
+        // std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
+        // std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
 
         double iso_value = iso({obj}, tracks, eflowPhotons, eflowNeutralHadrons, 0.1, "pfIso2");
-        std::cout << "iso returned: " << iso_value << std::endl;
+        // std::cout << "iso returned: " << iso_value << std::endl;
 
 
         if (iso_value == 0) {
             continue;
         }
 
-        std::cout << "made it past the iso function in filtered_loose_muons" << std::endl;
+        // std::cout << "made it past the iso function in filtered_loose_muons" << std::endl;
 
 
         filtered.push_back(obj);
-        std::cout << "successfully appended" << std::endl;
+        // std::cout << "successfully appended" << std::endl;
 
 
     }
-    std::cout << "returning filtered" << std::endl;
+    // std::cout << "returning filtered" << std::endl;
     return filtered;
         
 }
@@ -521,10 +521,10 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
 {
     std::vector<fastjet::PseudoJet> input_particles;
 
-    if(leptons.empty()){
-        std::cerr << "ERROR: getak15jets called with empty leptons vector. Skipping." << std::endl;
-        return {}; // Return empty jets safely
-    }
+    // if(leptons.empty()){
+    //     // std::cerr << "ERROR: getak15jets called with empty leptons vector. Skipping." << std::endl;
+    //     return {}; // Return empty jets safely
+    // }
 
     // only constructing this jet with particles which pass analysis-level selections
 
@@ -640,16 +640,24 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("lep1pt", 300, 0, 300);
     Manager()->AddHisto("lep1eta", 40,-3.14,3.14);
     Manager()->AddHisto("lep1phi", 40,-3.14,3.14);
+    Manager()->AddHisto("looselep", 10, 0, 10);
+    Manager()->AddHisto("tightlep", 10, 0, 10);
 
     // for the leading muon //
     Manager()->AddHisto("muo1pt", 300, 0, 300);
     Manager()->AddHisto("muo1eta", 40,-3.14,3.14);
     Manager()->AddHisto("muo1phi", 40,-3.14,3.14);
+    Manager()->AddHisto("loosemu", 10, 0, 10);
+    Manager()->AddHisto("tightmu", 10, 0, 10);
 
     // for the leading electron //
     Manager()->AddHisto("ele1pt", 300, 0, 300);
     Manager()->AddHisto("ele1eta", 40,-3.14,3.14);
     Manager()->AddHisto("ele1phi", 40,-3.14,3.14);
+    Manager()->AddHisto("loose_ele", 10, 0, 10);
+    Manager()->AddHisto("tightele", 10, 0, 10);
+
+
 
     // for the ak4jets //
     Manager()->AddHisto("NJets", 10,0.0,10.0);
@@ -704,9 +712,9 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 
 bool user::Execute(SampleFormat& sample, const EventFormat& event)
 {
-    std::cout << "in the event loop" << std::endl;
-    std::cout << "Number of muons in event: " << event.rec()->muons().size() << std::endl;
-    std::cout << "defining object cuts" << std::endl;
+    // std::cout << "in the event loop" << std::endl;
+    // std::cout << "Number of muons in event: " << event.rec()->muons().size() << std::endl;
+    // std::cout << "defining object cuts" << std::endl;
 
 
 
@@ -755,7 +763,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // jet id: https://github.com/SUEPPhysics/SUEPCoffea_dask/blob/d21ebb8d27d8a9c4f264fd680fc2003752aeab8b/workflows/WH_utils.py#L67C73-L67C78
 
     // adding weights
-    std::cout << "adding weights" << std::endl;
+    // std::cout << "adding weights" << std::endl;
 
     double weight = 1.;
     if (!Configuration().IsNoEventWeight() && event.mc()!=0) {
@@ -775,7 +783,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     //////////////////////////////////////////////
 
     // make loose leptons
-    std::cout << "making loose leptons" << std::endl;
+    // std::cout << "making loose leptons" << std::endl;
 
 
     // setup for isolation
@@ -786,13 +794,13 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // electrons
     vector<RecLeptonFormat> loose_electrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta, tracks, eflowPhotons, eflowNeutralHadrons);
-    std::cout << "loose_electrons size: " << loose_electrons.size() << std::endl;
+    // std::cout << "loose_electrons size: " << loose_electrons.size() << std::endl;
     vector<RecLeptonFormat> loose_posElectrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta,tracks, eflowPhotons, eflowNeutralHadrons, "+");
     vector<RecLeptonFormat> loose_negElectrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta, tracks, eflowPhotons, eflowNeutralHadrons, "-");
 
     // muons
     vector<RecLeptonFormat> loose_muons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons);
-    std::cout << "loose_muons size: " << loose_muons.size() << std::endl;
+    // std::cout << "loose_muons size: " << loose_muons.size() << std::endl;
     vector<RecLeptonFormat> loose_posMuons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons, "+");
     vector<RecLeptonFormat> loose_negMuons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons, "-");
 
@@ -800,7 +808,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // leptons (combined electrons and muons)
     vector<RecLeptonFormat> loose_leptons = loose_electrons;
     loose_leptons.insert(loose_leptons.end(), loose_muons.begin(), loose_muons.end());
-    std::cout << "loose_leptons size: " << loose_leptons.size() << std::endl;
+    // std::cout << "loose_leptons size: " << loose_leptons.size() << std::endl;
     vector<RecLeptonFormat> loose_posLeptons = loose_posElectrons;
     loose_posLeptons.insert(loose_posLeptons.end(), loose_posMuons.begin(), loose_posMuons.end());
     vector<RecLeptonFormat> loose_negLeptons = loose_negElectrons;
@@ -815,18 +823,18 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     //////////////////////////////////////////////
     //           event level selections         //
     //////////////////////////////////////////////
-    std::cout << "doing event level selections" << std::endl;
+    // std::cout << "doing event level selections" << std::endl;
 
 
     // orthogonality to ggf offline: remove events with no muons or electrons
-    std::cout << "ggf orthogonality" << std::endl;
+    // std::cout << "ggf orthogonality" << std::endl;
 
 
 
     bool vetonoleptons = (loose_leptons.size() == 0);
 
     // orthogonality to zh: remove events with a pair of OSSF leptons
-    std::cout << "zh orthogonality" << std::endl;
+    // std::cout << "zh orthogonality" << std::endl;
 
 
     bool SF = (loose_muons.size() == 2 || loose_electrons.size() == 2);
@@ -835,19 +843,19 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     
     // apply both orthogonality cuts
     
-    std::cout << "defining orthogonality cuts" << std::endl;
+    // std::cout << "defining orthogonality cuts" << std::endl;
     bool orthogonality = (!vetonoleptons) && (!OSSF);
-    std::cout << "applying orthogonality cuts" << std::endl;
+    // std::cout << "applying orthogonality cuts" << std::endl;
     if (not Manager()->ApplyCut(orthogonality, "orthogonality")) return true;
-    std::cout << "after orthogonality cuts" << std::endl;
+    // std::cout << "after orthogonality cuts" << std::endl;
 
     // apply tight selection on leptons passing orthogonality cuts
-    std::cout << "making tight leptons" << std::endl;
-    std::cout << "loose_muons size before tight: " << loose_muons.size() << std::endl;
-    std::cout << "loose_electrons size before tight: " << loose_electrons.size() << std::endl;
-    std::cout << "tracks size before tight: " << tracks.size() << std::endl;
-    std::cout << "photons size before tight: " << eflowPhotons.size() << std::endl;
-    std::cout << "neutral hadrons size before tight: " << eflowNeutralHadrons.size() << std::endl;
+    // std::cout << "making tight leptons" << std::endl;
+    // std::cout << "loose_muons size before tight: " << loose_muons.size() << std::endl;
+    // std::cout << "loose_electrons size before tight: " << loose_electrons.size() << std::endl;
+    // std::cout << "tracks size before tight: " << tracks.size() << std::endl;
+    // std::cout << "photons size before tight: " << eflowPhotons.size() << std::endl;
+    // std::cout << "neutral hadrons size before tight: " << eflowNeutralHadrons.size() << std::endl;
 
 
     // electrons
@@ -855,14 +863,14 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     vector<RecLeptonFormat> tight_posElectrons = filtered_tight_electrons(loose_electrons, tight_electron_minpt,tracks, eflowPhotons, eflowNeutralHadrons, "+");
     vector<RecLeptonFormat> tight_negElectrons = filtered_tight_electrons(loose_electrons, tight_electron_minpt, tracks, eflowPhotons, eflowNeutralHadrons, "-");
 
-    std::cout << "finished with tight electrons" << std::endl;
+    // std::cout << "finished with tight electrons" << std::endl;
 
     // muons
     vector<RecLeptonFormat> tight_muons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons);
     vector<RecLeptonFormat> tight_posMuons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons, "+");
     vector<RecLeptonFormat> tight_negMuons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons, "-");
 
-    std::cout << "finished with tight muons" << std::endl;
+    // std::cout << "finished with tight muons" << std::endl;
 
 
     // leptons (combined electrons and muons)
@@ -873,27 +881,27 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     vector<RecLeptonFormat> tight_negLeptons = tight_negElectrons;
     tight_negLeptons.insert(tight_negLeptons.end(), tight_negMuons.begin(), tight_negMuons.end());
 
-    std::cout << "finished with tight leptons" << std::endl;
-    std::cout << "tight Leptons size: " << tight_leptons.size() << std::endl;
+    // std::cout << "finished with tight leptons" << std::endl;
+    // std::cout << "tight Leptons size: " << tight_leptons.size() << std::endl;
 
 
-    // check sizes again
-    std::cout << "tight_muons size: " << tight_muons.size() << std::endl;
-    std::cout << "tight_electrons size: " << tight_electrons.size() << std::endl;
-    std::cout << "tracks size after tight: " << tracks.size() << std::endl;
-    std::cout << "photons size after tight: " << eflowPhotons.size() << std::endl;
-    std::cout << "neutral hadrons size after tight: " << eflowNeutralHadrons.size() << std::endl;
+    // // check sizes again
+    // std::cout << "tight_muons size: " << tight_muons.size() << std::endl;
+    // std::cout << "tight_electrons size: " << tight_electrons.size() << std::endl;
+    // std::cout << "tracks size after tight: " << tracks.size() << std::endl;
+    // std::cout << "photons size after tight: " << eflowPhotons.size() << std::endl;
+    // std::cout << "neutral hadrons size after tight: " << eflowNeutralHadrons.size() << std::endl;
 
     // jets
     vector<RecJetFormat> tight_Ak4jets = filtered_jets(event.rec()->jets(), ak4_minpt, ak4_maxeta, tight_leptons, ak4lep_deltar);
 
-    std::cout << "finished with tight ak4jets" << std::endl;
+    // std::cout << "finished with tight ak4jets" << std::endl;
 
 
     // sorting tight objects
     leading(tight_electrons, tight_posElectrons, tight_negElectrons, tight_muons, tight_posMuons, tight_negMuons, tight_leptons, tight_posLeptons, tight_negLeptons, tight_Ak4jets);
 
-    std::cout << "finished with sorting tight objects" << std::endl;
+    // std::cout << "finished with sorting tight objects" << std::endl;
 
 
     // met selections
@@ -904,7 +912,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool metptcut = (event.rec()->MET().pt() >= minmetpt);
     if (!Manager()->ApplyCut(metptcut, "metptcut")) return true;
 
-    std::cout << "met cut applied" << std::endl;
+    // std::cout << "met cut applied" << std::endl;
 
 
     // ak4 jets
@@ -921,7 +929,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool mindphimetak4cut = (dphi_ak4_met > mindphimetak4);
     if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4cut")) return true;
 
-    std::cout << "ak4 cuts applied" << std::endl;
+    // std::cout << "ak4 cuts applied" << std::endl;
 
     
     // w
@@ -943,7 +951,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool noBs = nobtag(tight_Ak4jets);
     if (not Manager()->ApplyCut(noBs, "noBs")) return true;
 
-    std::cout << "btag veto applied" << std::endl;
+    // std::cout << "btag veto applied" << std::endl;
 
 
     // ak-15
@@ -953,28 +961,28 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak-15 clustering 
 
     // ak-15 clustering
-    std::cout << "Tracks size: " << event.rec()->tracks().size() << std::endl;
-    std::cout << "Leptons size: " << tight_leptons.size() << std::endl;
-    std::cout << "Mintrackpt: " << mintrackpt << std::endl;
-    std::cout << "Maxtracketa: " << maxtracketa << std::endl;
-    std::cout << "Maxtrackdz: " << maxtrackdz << std::endl;
-    std::cout << "Maxtrackd0: " << maxtrackd0 << std::endl;
-    std::cout << "Mintracklepdr: " << mintracklepdr << std::endl;
-    std::cout << "Calling getak15jets..." << std::endl;
+    // std::cout << "Tracks size: " << event.rec()->tracks().size() << std::endl;
+    // std::cout << "Leptons size: " << tight_leptons.size() << std::endl;
+    // std::cout << "Mintrackpt: " << mintrackpt << std::endl;
+    // std::cout << "Maxtracketa: " << maxtracketa << std::endl;
+    // std::cout << "Maxtrackdz: " << maxtrackdz << std::endl;
+    // std::cout << "Maxtrackd0: " << maxtrackd0 << std::endl;
+    // std::cout << "Mintracklepdr: " << mintracklepdr << std::endl;
+    // std::cout << "Calling getak15jets..." << std::endl;
     std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> ak15jetsout;
     if (tight_leptons.empty()) {
-        std::cout << "No tight leptons, skipping AK15 clustering." << std::endl;
+        // std::cout << "No tight leptons, skipping AK15 clustering." << std::endl;
         return true;
     }
     else {
          ak15jetsout = getak15jets(event.rec()->tracks(), tight_leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
     }
     
-    std::cout << "getak15jets finished executing." << std::endl;
+    // std::cout << "getak15jets finished executing." << std::endl;
 
 
-    std::cout << "Size of ak15jetsout.first: " << ak15jetsout.first.size() << std::endl;
-    std::cout << "Size of ak15jetsout.second: " << ak15jetsout.second.size() << std::endl;
+    // std::cout << "Size of ak15jetsout.first: " << ak15jetsout.first.size() << std::endl;
+    // std::cout << "Size of ak15jetsout.second: " << ak15jetsout.second.size() << std::endl;
 
     // Ensure we have at least 2 elements before accessing index 1
     if (ak15jetsout.second.at(0).size() < 2) {
@@ -984,30 +992,30 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     }
 
     // Assign values only if the size is sufficient
-    std::cout << "Assigning ak15jets and ak15jetsconst..." << std::endl;
+    // std::cout << "Assigning ak15jets and ak15jetsconst..." << std::endl;
     std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first;
-    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
+    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
     std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second;
-    std::cout << "ak15jetsconst size: " << ak15jetsconst.size() << std::endl;
+    // std::cout << "ak15jetsconst size: " << ak15jetsconst.size() << std::endl;
 
-    std::cout << "Printing ak15jets elements:" << std::endl;
-    for (size_t i = 0; i < ak15jets.size(); i++) {
-        std::cout << "Jet " << i << " pt: " << ak15jets[i].pt() << std::endl;
-    }
+    // std::cout << "Printing ak15jets elements:" << std::endl;
+    // for (size_t i = 0; i < ak15jets.size(); i++) {
+    //     std::cout << "Jet " << i << " pt: " << ak15jets[i].pt() << std::endl;
+    // }
 
-    std::cout << "Printing ak15jetsconst elements:" << std::endl;
-    for (size_t i = 0; i < ak15jetsconst.size(); i++) {
-        if (ak15jetsconst[i].empty()) {
-            std::cerr << "WARNING: ak15jetsconst[" << i << "] is empty!" << std::endl;
-        } else {
-            std::cout << "ak15jetsconst[" << i << "] size: " << ak15jetsconst[i].size() << std::endl;
-        }
-    }
+    // std::cout << "Printing ak15jetsconst elements:" << std::endl;
+    // for (size_t i = 0; i < ak15jetsconst.size(); i++) {
+    //     if (ak15jetsconst[i].empty()) {
+    //         std::cerr << "WARNING: ak15jetsconst[" << i << "] is empty!" << std::endl;
+    //     } else {
+    //         std::cout << "ak15jetsconst[" << i << "] size: " << ak15jetsconst[i].size() << std::endl;
+    //     }
+    // }
 
     // need at least one cluster
     bool oneak15 = (ak15jets.size() > 0);
     if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
-    std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
+    // std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
 
 
    // Check leptons exist
@@ -1015,70 +1023,65 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         std::cerr << "ERROR: No leptons found! Cannot reconstruct W." << std::endl;
         return false;
     }
-    std::cout << "Lepton px: " << tight_leptons.at(0).px() 
-            << " py: " << tight_leptons.at(0).py() 
-            << " pz: " << tight_leptons.at(0).pz() 
-            << " E: " << tight_leptons.at(0).e() << std::endl;
+    // std::cout << "Lepton px: " << tight_leptons.at(0).px() 
+    //         << " py: " << tight_leptons.at(0).py() 
+    //         << " pz: " << tight_leptons.at(0).pz() 
+    //         << " E: " << tight_leptons.at(0).e() << std::endl;
 
     // Check MET exists
-    if (!event.rec()) {
-        std::cerr << "ERROR: event.rec() is NULL!" << std::endl;
-        return false;
-    }
-    std::cout << "MET px: " << event.rec()->MET().px() 
-            << " py: " << event.rec()->MET().py() 
-            << " pz: " << event.rec()->MET().pz() 
-            << " E: " << event.rec()->MET().e() << std::endl;
+    // if (!event.rec()) {
+    //     std::cerr << "ERROR: event.rec() is NULL!" << std::endl;
+    //     return false;
+    // }
+    // std::cout << "MET px: " << event.rec()->MET().px() 
+    //         << " py: " << event.rec()->MET().py() 
+    //         << " pz: " << event.rec()->MET().pz() 
+    //         << " E: " << event.rec()->MET().e() << std::endl;
 
     // W reconstruction
     ParticleBaseFormat recoW;
     recoW += tight_leptons.at(0).momentum();
     recoW += event.rec()->MET().momentum();
 
-    std::cout << "W candidate mass: " << recoW.m() << std::endl;
+    // std::cout << "W candidate mass: " << recoW.m() << std::endl;
     bool wptcut = (recoW.pt() > minwpt);
     if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
 
     // W mass selection
-    std::cout << "Calling ApplyCut for onshell on event " << "..." << std::endl;
-
-    if (!Manager()) {
-        std::cerr << "ERROR: Manager() is null!" << std::endl;
-        return false;
-    }
+    // std::cout << "Calling ApplyCut for onshell on event " << "..." << std::endl;
 
     // W mass selection
-    std::cout << "Calling ApplyCut for onshell..." << std::endl;
+    // std::cout << "Calling ApplyCut for onshell..." << std::endl;
     bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
-    std::cout << "W mass: " << recoW.m() << std::endl;
-    std::cout << "Applying cut: onshell" << std::endl;
+    // std::cout << "W mass: " << recoW.m() << std::endl;
+    // std::cout << "Applying cut: onshell" << std::endl;
     if (!Manager()->ApplyCut(onshell, "onshell")) {
-        std::cout << "Cut failed: onshell" << std::endl;
+        // std::cout << "Cut failed: onshell" << std::endl;
         return true;
     }
 
 
     // ak15 pt
-    std::cout << "Checking if ak15jets is empty..." << std::endl;
-    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    if (!ak15jets.empty()) {
-        std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    } else {
-        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
-    }
+    // std::cout << "Checking if ak15jets is empty..." << std::endl;
+    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
+    // if (!ak15jets.empty()) {
+    //     // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    // } else {
+    //     std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
+    // }
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
-    std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
     if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
 
     // ak4 lepton deltaR
-    std::cout << "Checking deltaR for Ak4jets..." << std::endl;
-    std::cout << "Ak4jets size: " << Ak4jets.size() << std::endl;
-    std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
+    // std::cout << "Checking deltaR for Ak4jets..." << std::endl;
+    // std::cout << "Ak4jets size: " << Ak4jets.size() << std::endl;
+    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
     bool lepoverlap = false;
     if (!tight_Ak4jets.empty() && !ak15jets.empty()) {
-        std::cout << "Calculating deltaR between Ak4jets[0] and ak15jets[0]..." << std::endl;
+        // std::cout << "Calculating deltaR between Ak4jets[0] and ak15jets[0]..." << std::endl;
         double deltaRvalue = deltar(tight_Ak4jets.at(0), ak15jets.at(0));
-        std::cout << "deltaR calculated: " << deltaRvalue << std::endl;
+        // std::cout << "deltaR calculated: " << deltaRvalue << std::endl;
         lepoverlap = (deltaRvalue < 0.4);
     } 
     if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
@@ -1086,7 +1089,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak4 ak15 overlap
     bool overlap = false;
     if (!tight_Ak4jets.empty() && !ak15jets.empty()) {
-        std::cout << "Checking deltaR for Ak4jets and ak15jets..." << std::endl;
+        // std::cout << "Checking deltaR for Ak4jets and ak15jets..." << std::endl;
         overlap = (deltar(tight_Ak4jets.at(0), ak15jets.at(0)) < 0.4);
     }
     if (not Manager()->ApplyCut(overlap, "overlap")) return true;
@@ -1148,11 +1151,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     std::vector<fastjet::PseudoJet> boosted_constituents = boost_to_jet_frame(leading_ak15const, leading_ak15jet);
     double boosted_sphericityval = sphericity(boosted_constituents, 1.0);
     bool boosted_sphericity = (boosted_sphericityval > minsphericity);
-    std::cout << "Sphericity calculated" << std::endl;
+    // std::cout << "Sphericity calculated" << std::endl;
     if (not Manager()->ApplyCut(boosted_sphericity, "boosted_sphericity")) return true;
 
     
-    std::cout << "all cuts successfully applied" << std::endl;
+    // std::cout << "all cuts successfully applied" << std::endl;
 
     // fill all histos
 
@@ -1169,18 +1172,31 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         Manager()->FillHisto("muo1pt", tight_muons.at(0).pt());
         Manager()->FillHisto("muo1eta", tight_muons.at(0).eta());
         Manager()->FillHisto("muo1phi", tight_muons.at(0).phi());
+        Manager()->FillHisto("tightmu", tight_muons.size());
     }
 
     else {
         Manager()->FillHisto("ele1pt", tight_electrons.at(0).pt());
         Manager()->FillHisto("ele1eta", tight_electrons.at(0).eta());
         Manager()->FillHisto("ele1phi", tight_electrons.at(0).phi());
+        Manager()->FillHisto("tightele", tight_electrons.size());
+
+    }
+
+    if(loose_muons.size() > 0){
+        Manager()->FillHisto("loosemu", loose_muons.size());
+    }
+    else {
+        Manager()->FillHisto("loose_ele", loose_electrons.size());
     }
 
    // fill lepton histos
    Manager()->FillHisto("lep1pt", tight_leptons.at(0).pt());
    Manager()->FillHisto("lep1eta", tight_leptons.at(0).eta());
    Manager()->FillHisto("lep1phi", tight_leptons.at(0).phi());
+   Manager()->FillHisto("looselep", loose_leptons.size());
+   Manager()->FillHisto("tightlep", tight_leptons.size());
+
 
    
     // ak4
@@ -1203,7 +1219,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     Manager()->FillHisto("ak151ntracks", ak15jetsconst.at(0).size());
     Manager()->FillHisto("ak151mass", ak15jets.at(0).m());
 
-    std::cout << "all histos successfully filled" << std::endl;
+    // std::cout << "all histos successfully filled" << std::endl;
 
 
     // extended abcd regions
@@ -1229,7 +1245,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
     if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
 
-    std::cout << "all abcd successfully made" << std::endl;
+    // std::cout << "all abcd successfully made" << std::endl;
 
     
     // met
@@ -1242,7 +1258,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     Manager()->FillHisto("sphericity", sphericityval);
     Manager()->FillHisto("boosted_sphericity", boosted_sphericityval);
 
-    std::cout << "finished" << std::endl;
+    // std::cout << "finished" << std::endl;
 
     return true;
 }
