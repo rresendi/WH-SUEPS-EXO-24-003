@@ -609,24 +609,24 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     // add selections //
 
     Manager()->AddCut("orthogonality");
-    Manager()->AddCut("metptcut");
-    Manager()->AddCut("mindphimetak4cut");
-    Manager()->AddCut("noBs");
+    Manager()->AddCut("onelep");
+    // one ak4
     Manager()->AddCut("oneak15");
-    Manager()->AddCut("onshell");
+    Manager()->AddCut("metptcut");
     Manager()->AddCut("wptcut");
+    Manager()->AddCut("onshell");
+    Manager()->AddCut("noBs");
+    Manager()->AddCut("dphiwsuep");
+    Manager()->AddCut("dphimetsuep");
+    Manager()->AddCut("dphilepsuep");
+    Manager()->AddCut("mindphimetak4cut");
     Manager()->AddCut("minak15ptcut");
     Manager()->AddCut("lepoverlap");
     Manager()->AddCut("overlap");
-    Manager()->AddCut("wSUEPptRatio");
     Manager()->AddCut("ak4ak15dR");
     Manager()->AddCut("overlap");
     Manager()->AddCut("ratio");
-    Manager()->AddCut("dphilepsuep");
-    Manager()->AddCut("dphimetsuep");
-    Manager()->AddCut("dphiwsuep");
-    // Manager()->AddCut("nconst");
-    Manager()->AddCut("boosted_sphericity");
+    // delta phi (MET, JET) > 1.5
 
     // make histos //
 
@@ -640,6 +640,7 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("lep1pt", 300, 0, 300);
     Manager()->AddHisto("lep1eta", 40,-3.14,3.14);
     Manager()->AddHisto("lep1phi", 40,-3.14,3.14);
+    Manager()->AddHisto("reconstructed electrons", 10, 0, 10);
     Manager()->AddHisto("looselep", 10, 0, 10);
     Manager()->AddHisto("tightlep", 10, 0, 10);
 
@@ -647,6 +648,7 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("muo1pt", 300, 0, 300);
     Manager()->AddHisto("muo1eta", 40,-3.14,3.14);
     Manager()->AddHisto("muo1phi", 40,-3.14,3.14);
+    Manager()->AddHisto("reconstructed muons", 10, 0, 10);
     Manager()->AddHisto("loosemu", 10, 0, 10);
     Manager()->AddHisto("tightmu", 10, 0, 10);
 
@@ -713,6 +715,7 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 bool user::Execute(SampleFormat& sample, const EventFormat& event)
 {
     // std::cout << "in the event loop" << std::endl;
+    // std::cout << "Number of electrons in event: " << event.rec()->electrons().size() << std::endl;
     // std::cout << "Number of muons in event: " << event.rec()->muons().size() << std::endl;
     // std::cout << "defining object cuts" << std::endl;
 
@@ -881,6 +884,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     vector<RecLeptonFormat> tight_negLeptons = tight_negElectrons;
     tight_negLeptons.insert(tight_negLeptons.end(), tight_negMuons.begin(), tight_negMuons.end());
 
+    // need exactly one tight lepton
+
+    bool onelep = (tight_leptons.size() == 1);
+    if (not Manager()->ApplyCut(onelep, "onelep")) return true;
+
     // std::cout << "finished with tight leptons" << std::endl;
     // std::cout << "tight Leptons size: " << tight_leptons.size() << std::endl;
 
@@ -1012,7 +1020,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     //     }
     // }
 
-    // need at least one cluster
+    // // need at least one cluster
     bool oneak15 = (ak15jets.size() > 0);
     if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
     // std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
@@ -1064,11 +1072,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     // ak15 pt
     // std::cout << "Checking if ak15jets is empty..." << std::endl;
     // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    // if (!ak15jets.empty()) {
-    //     // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    // } else {
-    //     std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
-    // }
+    if (!ak15jets.empty()) {
+        // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    } else {
+        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
+    }
     bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
     // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
     if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
@@ -1127,7 +1135,7 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     float const mindphiwsuep = 1.5;
 
-    float dphi_w_suep = fabs(recoW.eta() - ak15jets.at(0).phi());
+    float dphi_w_suep = fabs(recoW.phi() - ak15jets.at(0).phi());
     if (dphi_w_suep > M_PI) {
         dphi_w_suep = 2 * M_PI - dphi_w_suep;
         }
@@ -1138,11 +1146,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     float const minsphericity = 0.3;
 
-    // unboosted
-
-    double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
-    bool passed_sphericity_cut = (sphericityval > minsphericity);
-    if (not Manager()->ApplyCut(passed_sphericity_cut, "boosted_sphericity")) return true;
+    // bool passed_sphericity_cut = (sphericityval > minsphericity);
+    // if (not Manager()->ApplyCut(passed_sphericity_cut, "boosted_sphericity")) return true;
 
 
     // boosted
@@ -1150,11 +1155,11 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     auto leading_ak15jet = ak15jetsout.first.at(0);
     std::vector<fastjet::PseudoJet> boosted_constituents = boost_to_jet_frame(leading_ak15const, leading_ak15jet);
     double boosted_sphericityval = sphericity(boosted_constituents, 1.0);
-    bool boosted_sphericity = (boosted_sphericityval > minsphericity);
-    // std::cout << "Sphericity calculated" << std::endl;
-    if (not Manager()->ApplyCut(boosted_sphericity, "boosted_sphericity")) return true;
 
-    
+    // unboosted
+
+    double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
+
     // std::cout << "all cuts successfully applied" << std::endl;
 
     // fill all histos
@@ -1167,6 +1172,8 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     Manager()->FillHisto("wphi", recoW.phi());
 
     // muons or electrons, depending on which lepton is in the event
+
+
 
     if(tight_muons.size() > 0) {
         Manager()->FillHisto("muo1pt", tight_muons.at(0).pt());
@@ -1224,26 +1231,26 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // extended abcd regions
 
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) && (0.3 <= sphericityval && sphericityval < 0.4)) {Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= sphericityval && sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.3 <= sphericityval && sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) && (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)) {Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
 
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.4 <= sphericityval && sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
     
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
+    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
+    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
 
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.5 <= sphericityval && sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
+    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
+    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
+    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
+    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
+    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
 
     // std::cout << "all abcd successfully made" << std::endl;
 
