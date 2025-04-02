@@ -610,23 +610,22 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 
     Manager()->AddCut("orthogonality");
     Manager()->AddCut("onelep");
-    // one ak4
+    Manager()->AddCut("oneak4");
+    Manager()->AddCut("metpt20");
     Manager()->AddCut("oneak15");
-    Manager()->AddCut("metptcut");
+    Manager()->AddCut("metpt30");
     Manager()->AddCut("wptcut");
     Manager()->AddCut("onshell");
     Manager()->AddCut("noBs");
     Manager()->AddCut("dphiwsuep");
     Manager()->AddCut("dphimetsuep");
     Manager()->AddCut("dphilepsuep");
-    Manager()->AddCut("mindphimetak4cut");
-    Manager()->AddCut("minak15ptcut");
-    Manager()->AddCut("lepoverlap");
-    Manager()->AddCut("overlap");
-    Manager()->AddCut("ak4ak15dR");
     Manager()->AddCut("overlap");
     Manager()->AddCut("ratio");
-    // delta phi (MET, JET) > 1.5
+    Manager()->AddCut("mindphimetak4cut");
+    Manager()->AddCut("minak15ptcut");
+
+
 
     // make histos //
 
@@ -640,7 +639,6 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("lep1pt", 300, 0, 300);
     Manager()->AddHisto("lep1eta", 40,-3.14,3.14);
     Manager()->AddHisto("lep1phi", 40,-3.14,3.14);
-    Manager()->AddHisto("reconstructed electrons", 10, 0, 10);
     Manager()->AddHisto("looselep", 10, 0, 10);
     Manager()->AddHisto("tightlep", 10, 0, 10);
 
@@ -648,7 +646,6 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     Manager()->AddHisto("muo1pt", 300, 0, 300);
     Manager()->AddHisto("muo1eta", 40,-3.14,3.14);
     Manager()->AddHisto("muo1phi", 40,-3.14,3.14);
-    Manager()->AddHisto("reconstructed muons", 10, 0, 10);
     Manager()->AddHisto("loosemu", 10, 0, 10);
     Manager()->AddHisto("tightmu", 10, 0, 10);
 
@@ -911,35 +908,10 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
 
     // std::cout << "finished with sorting tight objects" << std::endl;
 
+    // need at least one ak4
+    bool oneak4 = (Ak4jets.size() > 0);
+    if (not Manager()->ApplyCut(oneak4, "oneak4")) return true;
 
-    // met selections
-
-    float const minmetpt = 30;
-    float const mindphimetak4 = 1.5;
-
-    bool metptcut = (event.rec()->MET().pt() >= minmetpt);
-    if (!Manager()->ApplyCut(metptcut, "metptcut")) return true;
-
-    // std::cout << "met cut applied" << std::endl;
-
-
-    // ak4 jets
-
-    if (tight_Ak4jets.size() < 1) {
-        // std::cout << "Event rejected: Less than 1 AK4 jet present." << std::endl;
-        return true;
-    }
-
-    float dphi_ak4_met = fabs(event.rec()->MET().phi() - tight_Ak4jets.at(0).phi());
-    if (dphi_ak4_met > M_PI) {
-        dphi_ak4_met = 2 * M_PI - dphi_ak4_met;
-        }
-    bool mindphimetak4cut = (dphi_ak4_met > mindphimetak4);
-    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4cut")) return true;
-
-    // std::cout << "ak4 cuts applied" << std::endl;
-
-    
     // w
 
     float const minwpt = 60;
@@ -954,28 +926,6 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     float const maxtrackdz = 0.05;
     float const mintracklepdr = 0.4;
 
-    // btag veto -- for now
-
-    bool noBs = nobtag(tight_Ak4jets);
-    if (not Manager()->ApplyCut(noBs, "noBs")) return true;
-
-    // std::cout << "btag veto applied" << std::endl;
-
-
-    // ak-15
-
-    float const minak15pt = 60;
-
-    // ak-15 clustering 
-
-    // ak-15 clustering
-    // std::cout << "Tracks size: " << event.rec()->tracks().size() << std::endl;
-    // std::cout << "Leptons size: " << tight_leptons.size() << std::endl;
-    // std::cout << "Mintrackpt: " << mintrackpt << std::endl;
-    // std::cout << "Maxtracketa: " << maxtracketa << std::endl;
-    // std::cout << "Maxtrackdz: " << maxtrackdz << std::endl;
-    // std::cout << "Maxtrackd0: " << maxtrackd0 << std::endl;
-    // std::cout << "Mintracklepdr: " << mintracklepdr << std::endl;
     // std::cout << "Calling getak15jets..." << std::endl;
     std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> ak15jetsout;
     if (tight_leptons.empty()) {
@@ -983,11 +933,13 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         return true;
     }
     else {
-         ak15jetsout = getak15jets(event.rec()->tracks(), tight_leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
+          ak15jetsout = getak15jets(event.rec()->tracks(), tight_leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
     }
     
     // std::cout << "getak15jets finished executing." << std::endl;
 
+    bool metptcut1 = (event.rec()->MET().pt() > 20);
+    if (!Manager()->ApplyCut(metptcut1, "metpt20")) return true;
 
     // std::cout << "Size of ak15jetsout.first: " << ak15jetsout.first.size() << std::endl;
     // std::cout << "Size of ak15jetsout.second: " << ak15jetsout.second.size() << std::endl;
@@ -1020,16 +972,19 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     //     }
     // }
 
-    // // need at least one cluster
+    // need at least one ak15
     bool oneak15 = (ak15jets.size() > 0);
     if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
     // std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
 
+    // second met cut
+    bool metptcut2 = (event.rec()->MET().pt() > 30);
+    if (!Manager()->ApplyCut(metptcut2, "metpt30")) return true;
 
-   // Check leptons exist
+    // Check leptons exist
     if (tight_leptons.empty()) {
-        std::cerr << "ERROR: No leptons found! Cannot reconstruct W." << std::endl;
-        return false;
+      std::cerr << "ERROR: No leptons found! Cannot reconstruct W." << std::endl;
+      return false;
     }
     // std::cout << "Lepton px: " << tight_leptons.at(0).px() 
     //         << " py: " << tight_leptons.at(0).py() 
@@ -1055,10 +1010,6 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool wptcut = (recoW.pt() > minwpt);
     if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
 
-    // W mass selection
-    // std::cout << "Calling ApplyCut for onshell on event " << "..." << std::endl;
-
-    // W mass selection
     // std::cout << "Calling ApplyCut for onshell..." << std::endl;
     bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
     // std::cout << "W mass: " << recoW.m() << std::endl;
@@ -1068,31 +1019,50 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         return true;
     }
 
+    // btag veto -- for now
 
-    // ak15 pt
-    // std::cout << "Checking if ak15jets is empty..." << std::endl;
-    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    if (!ak15jets.empty()) {
-        // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    } else {
-        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
-    }
-    bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
-    // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
+    bool noBs = nobtag(tight_Ak4jets);
+    if (not Manager()->ApplyCut(noBs, "noBs")) return true;
+
+    // std::cout << "btag veto applied" << std::endl;
+
+    // dphi w & suep
+
+    float const mindphiwsuep = 1.5;
+
+    float dphi_w_suep = fabs(recoW.phi() - ak15jets.at(0).phi());
+    if (dphi_w_suep > M_PI) {
+        dphi_w_suep = 2 * M_PI - dphi_w_suep;
+        }
+    bool dphiwsuep = (dphi_w_suep > mindphiwsuep);
+    if (not Manager()->ApplyCut(dphiwsuep, "dphiwsuep")) return true;
+
+    // dphi met & suep
+
+    float const mindphimetsuep = 1.5;
+
+    float dphi_suep_met = fabs(event.rec()->MET().phi() - ak15jets.at(0).phi());
+    if (dphi_suep_met > M_PI) {
+        dphi_suep_met = 2 * M_PI - dphi_suep_met;
+        }
+    bool dphimetsuep = (dphi_suep_met > mindphimetsuep);
+    if (not Manager()->ApplyCut(dphimetsuep, "dphimetsuep")) return true;    
+    
+    // dphi lepton & suep
+
+    float const mindphilepsuep = 1.5;
+
+    float dphi_lep_suep = fabs(tight_leptons.at(0).phi() - ak15jets.at(0).phi());
+    if (dphi_lep_suep > M_PI) {
+        dphi_lep_suep = 2 * M_PI - dphi_lep_suep;
+        }
+    bool dphilepsuep = (dphi_lep_suep > mindphilepsuep);
+    if (not Manager()->ApplyCut(dphilepsuep, "dphilepsuep")) return true;
 
     // ak4 lepton deltaR
     // std::cout << "Checking deltaR for Ak4jets..." << std::endl;
     // std::cout << "Ak4jets size: " << Ak4jets.size() << std::endl;
     // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    bool lepoverlap = false;
-    if (!tight_Ak4jets.empty() && !ak15jets.empty()) {
-        // std::cout << "Calculating deltaR between Ak4jets[0] and ak15jets[0]..." << std::endl;
-        double deltaRvalue = deltar(tight_Ak4jets.at(0), ak15jets.at(0));
-        // std::cout << "deltaR calculated: " << deltaRvalue << std::endl;
-        lepoverlap = (deltaRvalue < 0.4);
-    } 
-    if (not Manager()->ApplyCut(lepoverlap, "lepoverlap")) return true;
 
     // ak4 ak15 overlap
     bool overlap = false;
@@ -1109,42 +1079,41 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     bool ratio = (recoW.pt() / ak15jets.at(0).pt() < maxratio);
     if (not Manager()->ApplyCut(ratio, "ratio")) return true;
 
-    // dphi lepton & suep
+    // met selections
 
-    float const mindphilepsuep = 1.5;
+    float const mindphimetak4 = 1.5;
 
-    float dphi_lep_suep = fabs(tight_leptons.at(0).phi() - ak15jets.at(0).phi());
-    if (dphi_lep_suep > M_PI) {
-        dphi_lep_suep = 2 * M_PI - dphi_lep_suep;
+    float dphi_ak4_met = fabs(event.rec()->MET().phi() - tight_Ak4jets.at(0).phi());
+    if (dphi_ak4_met > M_PI) {
+        dphi_ak4_met = 2 * M_PI - dphi_ak4_met;
         }
-    bool dphilepsuep = (dphi_lep_suep > mindphilepsuep);
-    if (not Manager()->ApplyCut(dphilepsuep, "dphilepsuep")) return true;
+    bool mindphimetak4cut = (dphi_ak4_met > mindphimetak4);
+    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4cut")) return true;
 
-    // dphi met & suep
+    // std::cout << "ak4 cuts applied" << std::endl;
 
-    float const mindphimetsuep = 1.5;
+    // ak-15
 
-    float dphi_suep_met = fabs(event.rec()->MET().phi() - ak15jets.at(0).phi());
-    if (dphi_suep_met > M_PI) {
-        dphi_suep_met = 2 * M_PI - dphi_suep_met;
-        }
-    bool dphimetsuep = (dphi_suep_met > mindphimetsuep);
-    if (not Manager()->ApplyCut(dphimetsuep, "dphimetsuep")) return true;
+    float const minak15pt = 60;
 
-    // dphi w & suep
 
-    float const mindphiwsuep = 1.5;
 
-    float dphi_w_suep = fabs(recoW.phi() - ak15jets.at(0).phi());
-    if (dphi_w_suep > M_PI) {
-        dphi_w_suep = 2 * M_PI - dphi_w_suep;
-        }
-    bool dphiwsuep = (dphi_w_suep > mindphiwsuep);
-    if (not Manager()->ApplyCut(dphiwsuep, "dphiwsuep")) return true;
+    // ak15 pt
+    // std::cout << "Checking if ak15jets is empty..." << std::endl;
+    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
+    if (!ak15jets.empty()) {
+        // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    } else {
+        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
+    }
+    bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
+    // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
+    if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
+
 
     // sphericity
 
-    float const minsphericity = 0.3;
+    // float const minsphericity = 0.3;
 
     // bool passed_sphericity_cut = (sphericityval > minsphericity);
     // if (not Manager()->ApplyCut(passed_sphericity_cut, "boosted_sphericity")) return true;
