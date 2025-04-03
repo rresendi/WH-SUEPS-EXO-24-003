@@ -2,11 +2,43 @@
 using namespace MA5;
 using namespace std;
 #include <Eigen/Dense>
+ 
+// Returns the mass (in GeV) for a charged particle based on its PDG id
+// Common charged leptons, mesons, and baryons are included
+// If the PDG id is not recognized, defaults to the charged pion mass
+double getMassFromPDG(int pdgid) {
+    int absid = std::abs(pdgid);
+    switch(absid) {
+        case 11:    return 0.0005109989461; // electron
+        case 13:    return 0.1056583745;    // muon
+        case 211:   return 0.13957039;      // charged pion
+        case 321:   return 0.493677;        // charged kaon
+        case 213:   return 0.77526;         // charged ρ meson
+        case 323:   return 0.89166;         // K*(892)+ meson
+        case 2212:  return 0.9382720813;    // proton
+        case 2214:  return 1.232;           // Δ+ baryon
+        case 2224:  return 1.232;           // Δ++ baryon
+        case 411:   return 1.86965;         // D+ meson
+        case 431:   return 1.96834;         // D_s+ meson
+        case 3222:  return 1.18937;         // Σ+ baryon
+        case 3112:  return 1.19745;         // Σ- baryon
+        case 3312:  return 1.32171;         // Ξ- baryon
+        case 3334:  return 1.67245;         // Ω- baryon
+        case 521:   return 5.279;           // B+ meson
+        case 4122:  return 2.28646;         // Λ_c+ baryon
+        case 4222:  return 2.453;           // Σ_c++ baryon
+        default: {
+            std::cout << "[CAUTION] PDG id " << pdgid 
+                      << " of track being clustered into Ak15 not recognized in getMassFromPDG - please update function with this particle's mass to avoid inaccurate results." 
+                      << std::endl;
+            return 0.13957039;       // default to charged pion mass
+        }
+    }
+}
 
-std::vector<fastjet::PseudoJet> boost_to_jet_frame(const std::vector<fastjet::PseudoJet>& constituents, const fastjet::PseudoJet& jet) 
+std::vector<fastjet::PseudoJet> boostToSUEP(const std::vector<fastjet::PseudoJet>& constituents, const fastjet::PseudoJet& jet) 
 {
     std::vector<fastjet::PseudoJet> boosted_particles;
-
     // getting jet four momenta components
     double E_jet = jet.E();
     double px_jet = jet.px();
@@ -19,8 +51,11 @@ std::vector<fastjet::PseudoJet> boost_to_jet_frame(const std::vector<fastjet::Ps
     double bz = pz_jet / E_jet;
 
     double beta2 = bx*bx + by*by + bz*bz;
-
     double gamma = 1.0 / std::sqrt(1.0 - beta2);
+
+    // Debugging Inputs
+    //std::cout << "[DEBUG] Jet: E = " << E_jet << ", px = " << px_jet << ", py = " << py_jet << ", pz = " << pz_jet << std::endl;
+    //std::cout << "[DEBUG] Boost parameters: bx = " << bx << ", by = " << by << ", bz = " << bz << ", beta2 = " << beta2  << ", gamma = " << gamma << std::endl;
 
     // boosting constituents
     for (const auto& p : constituents) {
@@ -38,6 +73,11 @@ std::vector<fastjet::PseudoJet> boost_to_jet_frame(const std::vector<fastjet::Ps
         double py_prime = py + coeff * by;
         double pz_prime = pz + coeff * bz;
 
+        // Debugging Boosting
+        //std::cout << "[DEBUG] Dot product (pb) = " << pb << std::endl;
+        //std::cout << "[DEBUG] Constituent original: E = " << E << ", px = " << px << ", py = " << py << ", pz = " << pz << std::endl;
+        //std::cout << "[DEBUG] Boosted constituent: E' = " << E_prime << ", px' = " << px_prime << ", py' = " << py_prime << ", pz' = " << pz_prime << std::endl;
+
         fastjet::PseudoJet boosted(px_prime, py_prime, pz_prime, E_prime);
         boosted_particles.push_back(boosted);
     }
@@ -45,111 +85,33 @@ std::vector<fastjet::PseudoJet> boost_to_jet_frame(const std::vector<fastjet::Ps
     return boosted_particles;
 }
 
-
-double iso(vector<RecLeptonFormat> leptons, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, double iso_minpt, std::string iso = "")
-{
-    // std::cout << "Inside iso()" << std::endl;
-    // std::cout << "lep size in iso(): " << leptons.size() << std::endl;
-
-    if (leptons.size() == 0) {
-        // std::cout << "No leptons to process for iso." << std::endl;
-        return 0;
-    }
-
-    float deltaRmax = 0.4;
-    float ratiomax = 0.0;
-
-    // to be played with
-    if (iso == "WP90") {
-        ratiomax = 1000000;
-        }
-    else if (iso == "WP80") {
-        ratiomax = 1000000;
-        }
-    else if (iso == "pfIso2") {
-        ratiomax = 1000000;
-        }
-    else if (iso == "pfIso5") {
-        ratiomax = 1000000;
-        }
-
-    // std::cout << "ratiomax has been set to: " << ratiomax << std::endl;
-    // std::cout << "Tracks size: " << tracks.size() << std::endl;
-    // std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
-    // std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
-
-
-    for (const auto & lepton : leptons) {
-        float lep1pt = lepton.pt();
-        float totalpt = 0.0;
-        for (const auto & track : tracks){
-            // std::cout << "track pt: " << track.pt() << "track lep dr: " << lepton.dr(track) << std::endl;
-            if ((lepton.dr(track) < deltaRmax) && track.pt() > iso_minpt) {
-                // std::cout << "track pt: " << track.pt() << std::endl;
-                totalpt += track.pt();
-            }
-        }
-        for (const auto & photon : eflowPhotons){
-            // std::cout << "photon pt: " << photon.pt() << "photon lep dr: " << lepton.dr(photon) << std::endl;
-            if ((lepton.dr(photon) < deltaRmax) && photon.pt() > iso_minpt) {
-                // std::cout << "photon pt: " << photon.pt() << std::endl;
-                totalpt += photon.pt();
-            }
-        }
-        for (const auto & neutral : eflowNeutralHadrons){
-            // std::cout << "neutral pt: " << neutral.pt() << "neutral lep dr: " << lepton.dr(neutral) << std::endl;
-            if ((lepton.dr(neutral) < deltaRmax) && neutral.pt() > iso_minpt) {
-                // std::cout << "neutral pt: " << neutral.pt() << std::endl;
-                totalpt += neutral.pt();
-            }
-        }
-        // std::cout << "lep1pt: " << lep1pt << ", totalpt: " << totalpt << std::endl;
-        float pt_ratio = totalpt / lep1pt;
-        // std::cout << "pt_ratio: " << pt_ratio << std::endl;
-        if (pt_ratio > ratiomax) {
-            // std::cout << "returning 0" << std::endl;
-            return 0;
-        }
-    }
-    // std::cout << "returning 1" << std::endl;
-    return 1;
-}
-
 double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
-    // std::cout << "Inside sphericity(). Input vector size: " << particles.size() << ", r = " << r << std::endl;
-    // check for an empty jet
 
     if (particles.empty()) {
         // std::cerr << "Leading jet empty!" << std::endl;
         return 0.0;
     }
 
-    // initialize sums for sphericity matrix calculation
-
+    // Initialize sums for sphericity matrix calculation
     double S_xx = 0.0, S_xy = 0.0, S_xz = 0.0;
     double S_yy = 0.0, S_yz = 0.0, S_zz = 0.0;
     double norm = 0.0;
 
-    // calculate momentum components & momentum
-
+    // Calculate momentum components & and normalization factor
     for (const auto & particle : particles) {
         double px = particle.px();
         double py = particle.py();
         double pz = particle.pz();
         double p = std::sqrt( px * px + py * py + pz * pz);
-        // std::cout << "Particle px: " << px << ", py: " << py << ", pz: " << pz << ", p: " << p << std::endl;
 
         if (p == 0) {
             // std::cerr << "Warning: Found particle with zero momentum! Skipping." << std::endl;
             continue;
         }
         
-        // calculating the weight
+        double weight = std::pow(p, r - 2.0); // Weight for each component
 
-        double weight = std::pow(p, r - 2.0);
-
-        // calculating the tensor components
-
+        // Calculating the tensor components
         S_xx += px * px * weight;
         S_xy += px * py * weight;
         S_xz += px * pz * weight;
@@ -157,14 +119,11 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
         S_yz += py * pz * weight;
         S_zz += pz * pz * weight;
 
-        // calculating the normalization for the components
+        // Normalization
         norm += std::pow(p, r);
-        // std::cout << "Final norm before normalization: " << norm << std::endl;
-
     }
 
-    // normalize the matrix if norm > 0
-    
+    // Normalize the matrix if norm > 0
     if (norm > 0) {
         S_xx /= norm;
         S_xy /= norm;
@@ -174,252 +133,271 @@ double sphericity(const std::vector<fastjet::PseudoJet>& particles, double r) {
         S_zz /= norm;
     }
 
-    // build sphericity matrix
-
+    // Build sphericity matrix
     Eigen::Matrix3d S;
     S << S_xx, S_xy, S_xz,
          S_xy, S_yy, S_yz,
          S_xz, S_yz, S_zz;
 
-    // get sphericity matrix eigenvalues
-    // std::cout << "Sphericity matrix: " << S << std::endl;
+    // Debugging S matrix and normalization
+    //std::cout << "[DEBUG] S_xx: " << S_xx << ", S_xy: " << S_xy << ", S_xz: " << S_xz << std::endl;
+    //std::cout << "[DEBUG] S_yy: " << S_yy << ", S_yz: " << S_yz << ", S_zz: " << S_zz << std::endl;
+    //std::cout << "[DEBUG] Norm: " << norm << std::endl;
+    //std::cout << "[DEBUG] Constructed S matrix:\n" << S << std::endl;
+
+    // Get sphericity matrix eigenvalues
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(S);
-    if (solver.info()!= Eigen::Success) {
-        // std::cerr << "Could not calculate eigenvalues..." << std::endl;
+    if (solver.info() != Eigen::Success) {
+        //std::cerr << "[DEBUG] Sphericity eigenvalue solver failed with info: " << solver.info() << std::endl;
         return 0.0;
     }
 
-    // sort the eigenvalues
+    // Sort the eigenvalues
     Eigen::Vector3d eigenvals = solver.eigenvalues();
-    // std::cout << "Eigenvalues: " << eigenvals.transpose() << std::endl;
     std::sort(eigenvals.data(), eigenvals.data() + eigenvals.size());
-    // std::cout << "Sorted eigenvalues: " << eigenvals[0] << ", " << eigenvals[1] << ", " << eigenvals[2] << std::endl;
 
-    // grab the two smallest eigenvalues
+    // Grab the two smallest eigenvalues
 
     double eigenval1 = eigenvals[0];
     double eigenval2 = eigenvals[1];
 
-    // calculate the sphericity
+    // Calculate the sphericity
 
     double sphericityval = 1.5 * (eigenval1 + eigenval2);
+
+    // Debugging statements
+    // std::cout << "Sphericity matrix: " << S << std::endl;
+    // std::cout << "Eigenvalues: " << eigenvals.transpose() << std::endl;
+    // std::cout << "Sorted eigenvalues: " << eigenvals[0] << ", " << eigenvals[1] << ", " << eigenvals[2] << std::endl;
 
     return sphericityval;
 }
 
-vector<RecLeptonFormat> filtered_loose_muons(vector<RecLeptonFormat> objects, float ptmin, float etamax, float dz, float d0, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, std::string charge = "") {
-    // Selects loose muons that pass analysis-level cuts
+bool iso(const RecLeptonFormat& lepton, 
+    const std::vector<RecTrackFormat>& eflowTracks, 
+    const std::vector<RecParticleFormat>& eflowPhotons, 
+    const std::vector<RecParticleFormat>& eflowNeutralHadrons, 
+    double iso_minpt, 
+    double deltaRmax, 
+    std::string iso = ""){
+   
+    // Iso Debugging
+    // std::cout << "Inside iso()" << std::endl;
 
-    vector<RecLeptonFormat> filtered;
-    // std::cout << "object size: " << objects.size() << std::endl;
+    double ratiomax = 0.0;
 
-
-    for (auto & obj : objects) {
-        
-        // Charge Selections
-        if ( charge == '+') {
-            if (obj.charge() <= 0) {
-                continue;
-            }
-        } else if ( charge == '-') {
-            if (obj.charge() >= 0) {
-                continue;
-            }
-        }
-
-        // Object Selections
-
-        // pT
-        if (obj.pt() < ptmin) {
-            continue;
-        }
-
-
-        // eta
-        if (fabs(obj.eta()) > etamax) {
-            continue;
-        }
-
-
-        // dz
-
-        if (fabs(obj.dz()) > dz) {
-            continue;
-        }
-
-
-        // d0
-
-        if (fabs(obj.d0()) > d0) {
-            continue;
-        }
-
-        // std::cout << "Before iso call, obj pt: " << obj.pt() << ", eta: " << obj.eta() << std::endl;
-        // std::cout << "Tracks size: " << tracks.size() << std::endl;
-        // std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
-        // std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
-
-        double iso_value = iso({obj}, tracks, eflowPhotons, eflowNeutralHadrons, 0.1, "pfIso2");
-        // std::cout << "iso returned: " << iso_value << std::endl;
-
-
-        if (iso_value == 0) {
-            continue;
-        }
-
-        // std::cout << "made it past the iso function in filtered_loose_muons" << std::endl;
-
-
-        filtered.push_back(obj);
-        // std::cout << "successfully appended" << std::endl;
-
-
+    // to be played with
+    if (iso == "WP90") 
+    {
+        ratiomax = 0.12;
     }
-    // std::cout << "returning filtered" << std::endl;
-    return filtered;
-        
-}
-
-vector<RecLeptonFormat> filtered_tight_muons(vector<RecLeptonFormat> objects, float ptmin, float dz, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, std::string charge = "") {
-    // Selects tight muons that pass analysis-level cuts
-
-    vector<RecLeptonFormat> filtered;
-
-    for ( auto & obj : objects) {
-        
-        // Charge Selections
-        if ( charge == '+') {
-            if (obj.charge() <= 0) {
-                continue;
-            }
-        } else if ( charge == '-') {
-            if (obj.charge() >= 0) {
-                continue;
-            }
-        }
-
-        // Object Selections
-
-        // pT
-        if (obj.pt() < ptmin) {
-            continue;
-        }
-
-        // dz
-
-        if (fabs(obj.dz()) > dz) {
-            continue;
-        }
-
-        if (iso({obj}, tracks, eflowPhotons, eflowNeutralHadrons, 0.1, "pfIso5") == 0) {
-            continue;
-        }
-
-        filtered.push_back(obj);
-
+    else if (iso == "WP80") 
+    {
+        ratiomax = 0.10;
+    }
+    else if (iso == "pfIso2") 
+    {
+        ratiomax = 0.25;
+    }
+    else if (iso == "pfIso5") 
+    {
+        ratiomax = 0.2;
     }
 
-    return filtered;
-        
-}
+    // Iso Debugging
+    // std::cout << "ratiomax has been set to: " << ratiomax << std::endl;
+    // std::cout << "Tracks size: " << tracks.size() << std::endl;
+    // std::cout << "Photons size: " << eflowPhotons.size() << std::endl;
+    // std::cout << "Neutral Hadrons size: " << eflowNeutralHadrons.size() << std::endl;
 
-vector<RecLeptonFormat> filtered_loose_electrons(vector<RecLeptonFormat> objects, float ptmin, float etamax, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, std::string charge = "") {
-    // Selects loose electrons that pass analysis-level cuts
+    double lep_pt = lepton.pt();
+    double totalpt = 0.0;
 
-    vector<RecLeptonFormat> filtered;
-
-    for ( auto & obj : objects) {
-        
-        // Charge Selections
-        if ( charge == '+') {
-            if (obj.charge() <= 0) {
-                continue;
-            }
-        } else if ( charge == '-') {
-            if (obj.charge() >= 0) {
-                continue;
-            }
-        }
-
-        // Object Selections
-        double abseta = fabs(obj.eta());
-
-        // pT
-        if (obj.pt() < ptmin) {
+    for (const auto & track : eflowTracks) {
+        double dr = lepton.dr(track);
+        double pt = track.pt();
+        //std::cout << "[Track] pt: " << pt << ", dR: " << dr << std::endl;
+        if (dr < 0.001) {
+            //std::cout << " --> Skipping self" << std::endl;
             continue;
         }
-
-        // eta and impact parameter
-        if (abseta > etamax) {
-            continue;
+        if (dr < deltaRmax && pt > iso_minpt) {
+            //std::cout << " --> Added to totalpt" << std::endl;
+            totalpt += pt;
         }
-
-        if (abseta > 1.444 || abseta < 1.566) {
-          continue;
-        }
-
-        if(fabs(obj.d0()) > (0.05 + 0.05 * (abseta > 1.479))){
-          continue;
-        }
+    }
     
-        if(fabs(obj.dz()) > (0.1 + 0.1 * (abseta > 1.479))){
-          continue;
+    for (const auto & photon : eflowPhotons) {
+        double dr = lepton.dr(photon);
+        double pt = photon.pt();
+        //std::cout << "[Photon] pt: " << pt << ", dR: " << dr << std::endl;
+        if (dr < deltaRmax && pt > iso_minpt) {
+            //std::cout << " --> Added to totalpt" << std::endl;
+            totalpt += pt;
         }
-
-        // wp 90
-
-        if (iso({obj}, tracks, eflowPhotons, eflowNeutralHadrons, 0.1, "WP90") == 0) {
-            continue;
-        }
-
-        filtered.push_back(obj);
-
     }
-
-    return filtered;
-        
+    
+    for (const auto & neutral : eflowNeutralHadrons) {
+        double dr = lepton.dr(neutral);
+        double pt = neutral.pt();
+        //std::cout << "[NeutralHadron] pt: " << pt << ", dR: " << dr << std::endl;
+        if (dr < deltaRmax && pt > iso_minpt) {
+            // std::cout << " --> Added to totalpt" << std::endl;
+            totalpt += pt;
+        }
+    }
+    
+    double pt_ratio = totalpt / lep_pt;
+    //std::cout << "Lepton pt: " << lep_pt << ", total iso pt: " << totalpt << ", pt_ratio: " << pt_ratio << ", ratiomax: " << ratiomax << std::endl;
+    return (pt_ratio <= ratiomax);
 }
 
-vector<RecLeptonFormat> filtered_tight_electrons(vector<RecLeptonFormat> objects, float ptmin, std::vector <RecTrackFormat> tracks, std::vector <RecParticleFormat> eflowPhotons, std::vector <RecParticleFormat> eflowNeutralHadrons, std::string charge = "") {
-    // Selects tight electrons that pass analysis-level cuts
-
+vector<RecLeptonFormat> filter_muons(const vector<RecLeptonFormat>& objects, 
+    float ptmin, 
+    float etamax, 
+    float d0, 
+    float dz, 
+    const vector<RecTrackFormat>& eflowTracks, 
+    const vector<RecParticleFormat>& eflowPhotons, 
+    const vector<RecParticleFormat>& eflowNeutralHadrons, 
+    const string& selection, 
+    string charge = "")
+{
     vector<RecLeptonFormat> filtered;
-
-    for ( auto & obj : objects) {
-        
-        // Charge Selections
-        if ( charge == '+') {
-            if (obj.charge() <= 0) {
-                continue;
+    for (const auto & obj : objects) 
+    {
+        // Charge selection
+        if (charge == "+") 
+        {
+            if (obj.charge() > 0)
+            {
+                filtered.push_back(obj);
             }
-        } else if ( charge == '-') {
-            if (obj.charge() >= 0) {
-                continue;
+            continue;
+        } 
+        else if (charge == "-") 
+        {
+            if (obj.charge() < 0)
+            {
+                filtered.push_back(obj);
             }
-        }
-
-        // Object Selections
-        
-        // pT
-        if (obj.pt() < ptmin) {
             continue;
         }
 
-        // wp 80
-        
-        if (iso({obj}, tracks, eflowPhotons, eflowNeutralHadrons, 0.1, "WP80") == 0) {
+        // pT cut
+        if (obj.pt() < ptmin)
             continue;
+
+        // For loose selection, apply additional eta and d0 cuts
+        if (selection == "loose") 
+        {
+            if (fabs(obj.eta()) > etamax)
+                continue;
+
+            if (fabs(obj.d0()) > d0)
+                continue;
+        }
+
+        // dz cut applies for both loose and tight selections
+        if (fabs(obj.dz()) > dz)
+            continue;
+
+        // Iso selection: use "pfIso2" for loose and "pfIso5" for tight
+        string iso_option = (selection == "loose") ? "pfIso2" : "pfIso5";
+        if (!iso(obj, eflowTracks, eflowPhotons, eflowNeutralHadrons, 0.1, 0.4, iso_option))
+            continue;
+
+        filtered.push_back(obj);
+    }
+    return filtered;
+}
+
+
+vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat>& objects, 
+    float ptmin, 
+    float etamax, 
+    const vector<RecTrackFormat>& eflowTracks, 
+    const vector<RecParticleFormat>& eflowPhotons, 
+    const vector<RecParticleFormat>& eflowNeutralHadrons, 
+    const string& selection, 
+    string charge = "")
+{
+    vector<RecLeptonFormat> filtered;
+    for (const auto & obj : objects) 
+    {
+        // Charge selection
+        if (charge == "+") 
+        {
+            if (obj.charge() > 0)
+            {
+                filtered.push_back(obj);
+            }
+            continue;
+        } 
+        else if (charge == "-") 
+        {
+            if (obj.charge() < 0)
+            {
+                filtered.push_back(obj);
+            }
+            continue;
+        }
+
+        // pT cut
+        if (obj.pt() < ptmin)
+        {
+            continue;    
+        }
+
+        if (selection == "loose") 
+        {
+            double abseta = fabs(obj.eta());
+            if (abseta > etamax)
+            {
+                continue;
+            }
+                
+
+            // Exclude crack region: electrons with 1.444 < |eta| < 1.566
+            if ((abseta > 1.444) && (abseta < 1.566))
+            {
+                continue;
+            }
+
+            if (fabs(obj.d0()) > (0.05 + 0.05 * (abseta > 1.479)))
+            {
+                continue;
+            }
+
+            if (fabs(obj.dz()) > (0.1 + 0.1 * (abseta > 1.479)))
+            {
+                continue;
+            }
+
+            if (!iso(obj, eflowTracks, eflowPhotons, eflowNeutralHadrons, 0.1, 0.3, "WP90"))
+            {
+                continue;
+            }
+        } 
+
+        else if (selection == "tight") 
+        {
+            if (!iso(obj, eflowTracks, eflowPhotons, eflowNeutralHadrons, 0.1, 0.3, "WP80"))
+            {
+                continue;
+            }
         }
 
         filtered.push_back(obj);
-
     }
-
     return filtered;
-        
 }
 
-vector<RecJetFormat> filtered_jets(vector<RecJetFormat> jets, float ptmin, float etamax, const vector<RecLeptonFormat>& leptons, float deltaRmin) {
+vector<RecJetFormat> filtered_jets(vector<RecJetFormat> jets, 
+    float ptmin, 
+    float etamax, 
+    float deltaR,
+    const vector<RecLeptonFormat>& leptons) {
     // Selects jets that pass analysis-level cuts
 
     vector<RecJetFormat> filtered;
@@ -439,17 +417,17 @@ vector<RecJetFormat> filtered_jets(vector<RecJetFormat> jets, float ptmin, float
         }
 
         // deltaR
-        bool passdeltaR = true;
+        bool passDeltaR = true;
 
         for (const auto & lepton : leptons) {
-            if (jet.dr(lepton) <= deltaRmin) {
-                passdeltaR = false;
+            if (jet.dr(lepton) <= deltaR) {
+                passDeltaR = false;
                 break;
             }
         }
 
         // putting successful jets in the filtered list
-        if (passdeltaR) {
+        if (passDeltaR) {
             filtered.push_back(jet);
         }
 
@@ -482,7 +460,7 @@ void leading(std::vector<RecLeptonFormat>& electrons,
              std::vector<RecLeptonFormat>& leptons,
              std::vector<RecLeptonFormat>& posLeptons,
              std::vector<RecLeptonFormat>& negLeptons,
-             std::vector<RecJetFormat>& Ak4jets) {
+             std::vector<RecJetFormat> Ak4jets = {}) {
             
     // Sorting electrons
     std::sort(electrons.begin(), electrons.end(), leadinglep);
@@ -499,14 +477,15 @@ void leading(std::vector<RecLeptonFormat>& electrons,
     std::sort(posLeptons.begin(), posLeptons.end(), leadinglep);
     std::sort(negLeptons.begin(), negLeptons.end(), leadinglep);
 
-    // Sorting jets
-    std::sort(Ak4jets.begin(), Ak4jets.end(), leadingjet);
-
+    // Sorting Ak4 jets
+    if (!Ak4jets.empty()) {
+        std::sort(Ak4jets.begin(), Ak4jets.end(), leadingjet);
+    }
 }
 
 // Veto b-tagged jets
 
-bool nobtag(vector<RecJetFormat> jets) {
+bool noBTag(vector<RecJetFormat> jets) {
     for (auto jet : jets) {
         if (jet.btag()) {
             return false;
@@ -517,16 +496,9 @@ bool nobtag(vector<RecJetFormat> jets) {
 
 // creating the ak15 jet which models the suep
 
-std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getak15jets(std::vector <RecTrackFormat> tracks, std::vector<RecLeptonFormat> leptons, double pt_cut, double eta_cut, double dz_cut, double d0_cut, double dr_cut)
+std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getAk15Jets(std::vector <RecTrackFormat> tracks, std::vector<RecLeptonFormat> leptons, double pt_cut, double eta_cut, double dz_cut, double d0_cut, double dr_cut)
 {
     std::vector<fastjet::PseudoJet> input_particles;
-
-    // if(leptons.empty()){
-    //     // std::cerr << "ERROR: getak15jets called with empty leptons vector. Skipping." << std::endl;
-    //     return {}; // Return empty jets safely
-    // }
-
-    // only constructing this jet with particles which pass analysis-level selections
 
     for (const auto &track : tracks) {
         if (track.pt() >= pt_cut && std::abs(track.eta()) <= eta_cut &&
@@ -534,10 +506,15 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
             track.dr(leptons.at(0)) >= dr_cut
             )
 
-            // creating the particles (constituents) which makeup our jet
-
+            // Creating the particles (constituents) which makeup our jet
             {
-            fastjet::PseudoJet particle(track.px(), track.py(), track.pz(), track.e());
+            double px = track.px();
+            double py = track.py();
+            double pz = track.pz();
+            double p2 = px*px + py*py + pz*pz;
+            double mass = getMassFromPDG(track.pdgid());
+            double E_corrected = std::sqrt(p2 + mass*mass);
+            fastjet::PseudoJet particle(px, py, pz, E_corrected); // Correcting energy of tracks to account for momentum smearing
             input_particles.emplace_back(particle);
             }
     }
@@ -567,7 +544,7 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
 
 // calculating deltaR between the reconstructed jet and the simulated jet
 
-double deltar(const RecJetFormat& rec_jet, const fastjet::PseudoJet& pseudo_jet)
+double calculateDeltaR(const RecJetFormat& rec_jet, const fastjet::PseudoJet& pseudo_jet) 
 {
     double rec_eta = rec_jet.eta();
     double rec_phi = rec_jet.phi();
@@ -575,19 +552,16 @@ double deltar(const RecJetFormat& rec_jet, const fastjet::PseudoJet& pseudo_jet)
     double pseudo_eta = pseudo_jet.eta();
     double pseudo_phi = pseudo_jet.phi();
 
-    // wrap arounds
+    // Map pseudo_phi from [0, 2pi] to [-pi, pi] for consistency
     if (pseudo_phi > M_PI) {
         pseudo_phi -= 2 * M_PI;
     }
 
-    // calculate deta and dphi
+    // Calculate delta eta and delta phi
+    double delta_eta = rec_eta - pseudo_eta;
+    double delta_phi = std::atan2(std::sin(rec_phi - pseudo_phi), std::cos(rec_phi - pseudo_phi));
 
-    double deta = rec_eta - pseudo_eta;
-    double dphi = std::atan2(std::sin(rec_phi - pseudo_phi), std::cos(rec_phi - pseudo_phi));
-
-    // calculate deltar
-
-    return std::sqrt(deta * deta + dphi * dphi);
+    return std::sqrt(delta_eta * delta_eta + delta_phi * delta_phi);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -602,103 +576,98 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
     PHYSICS->recConfig().Reset();
     PHYSICS->recConfig().UseDeltaRIsolation(0.5);
 
-    // make the signal region //
+    // SR definition
 
     Manager()->AddRegionSelection("SR");
 
-    // add selections //
+    // Event-Level Selections
 
     Manager()->AddCut("orthogonality");
-    Manager()->AddCut("onelep");
-    Manager()->AddCut("oneak4");
-    Manager()->AddCut("metpt20");
-    Manager()->AddCut("oneak15");
-    Manager()->AddCut("metpt30");
-    Manager()->AddCut("wptcut");
-    Manager()->AddCut("onshell");
+    Manager()->AddCut("oneLep");
+    Manager()->AddCut("oneAk4");
+    Manager()->AddCut("METpTCut_20");
+    Manager()->AddCut("Ak15");
+    Manager()->AddCut("METpTCut_30");
+    Manager()->AddCut("wPtCut");
+    Manager()->AddCut("onShellW");
     Manager()->AddCut("noBs");
-    Manager()->AddCut("dphiwsuep");
-    Manager()->AddCut("dphimetsuep");
-    Manager()->AddCut("dphilepsuep");
-    Manager()->AddCut("overlap");
-    Manager()->AddCut("ratio");
-    Manager()->AddCut("mindphimetak4cut");
-    Manager()->AddCut("minak15ptcut");
+    Manager()->AddCut("dPhi_W_SUEP");
+    Manager()->AddCut("dPhi_MET_SUEP");
+    Manager()->AddCut("dPhi_Lep_SUEP");
+    Manager()->AddCut("Ak4_Ak15_Overlap");
+    Manager()->AddCut("W_SUEP_ratio");
+    Manager()->AddCut("dPhi_MET_Ak4");
 
+    // Histos to fill
 
+    // W Histograms
+    Manager()->AddHisto("wMass", 60, 0.0, 140.0);
+    Manager()->AddHisto("wPt", 300, 0, 300);
+    Manager()->AddHisto("wEta", 40,-3.14,3.14);
+    Manager()->AddHisto("wPhi", 40,-3.14,3.14);
 
-    // make histos //
+    // Lepton Histograms
+    Manager()->AddHisto("lepPt", 300, 0, 300);
+    Manager()->AddHisto("lepEta", 40,-3.14,3.14);
+    Manager()->AddHisto("lepPhi", 40,-3.14,3.14);
+    Manager()->AddHisto("looseLep", 10, 0, 10);
+    Manager()->AddHisto("tightLep", 10, 0, 10);
 
-    // for the w //
-    Manager()->AddHisto("wmass", 60, 0.0, 140.0);
-    Manager()->AddHisto("wpt", 300, 0, 300);
-    Manager()->AddHisto("weta", 40,-3.14,3.14);
-    Manager()->AddHisto("wphi", 40,-3.14,3.14);
+    // Muon Histograms
+    Manager()->AddHisto("muPt", 300, 0, 300);
+    Manager()->AddHisto("muEta", 40,-3.14,3.14);
+    Manager()->AddHisto("muPhi", 40,-3.14,3.14);
+    Manager()->AddHisto("looseMu", 10, 0, 10);
+    Manager()->AddHisto("tightMu", 10, 0, 10);
 
-    // for the leading lepton //
-    Manager()->AddHisto("lep1pt", 300, 0, 300);
-    Manager()->AddHisto("lep1eta", 40,-3.14,3.14);
-    Manager()->AddHisto("lep1phi", 40,-3.14,3.14);
-    Manager()->AddHisto("looselep", 10, 0, 10);
-    Manager()->AddHisto("tightlep", 10, 0, 10);
+    // Electron Histograms
+    Manager()->AddHisto("elePt", 300, 0, 300);
+    Manager()->AddHisto("eleEta", 40,-3.14,3.14);
+    Manager()->AddHisto("elePhi", 40,-3.14,3.14);
+    Manager()->AddHisto("looseEle", 10, 0, 10);
+    Manager()->AddHisto("tightEle", 10, 0, 10);
 
-    // for the leading muon //
-    Manager()->AddHisto("muo1pt", 300, 0, 300);
-    Manager()->AddHisto("muo1eta", 40,-3.14,3.14);
-    Manager()->AddHisto("muo1phi", 40,-3.14,3.14);
-    Manager()->AddHisto("loosemu", 10, 0, 10);
-    Manager()->AddHisto("tightmu", 10, 0, 10);
-
-    // for the leading electron //
-    Manager()->AddHisto("ele1pt", 300, 0, 300);
-    Manager()->AddHisto("ele1eta", 40,-3.14,3.14);
-    Manager()->AddHisto("ele1phi", 40,-3.14,3.14);
-    Manager()->AddHisto("loose_ele", 10, 0, 10);
-    Manager()->AddHisto("tightele", 10, 0, 10);
-
-
-
-    // for the ak4jets //
+    // Ak4 Histograms
     Manager()->AddHisto("NJets", 10,0.0,10.0);
-    Manager()->AddHisto("ak41pt", 300, 0, 300);
-    Manager()->AddHisto("ak41eta", 40,-3.14,3.14);
-    Manager()->AddHisto("ak41phi", 40,-3.14,3.14);
-    Manager()->AddHisto("ak41ntracks", 100,0.0,100.0);
+    Manager()->AddHisto("ak4Pt", 300, 0, 300);
+    Manager()->AddHisto("ak4Eta", 40,-3.14,3.14);
+    Manager()->AddHisto("ak4Phi", 40,-3.14,3.14);
+    Manager()->AddHisto("ak4NTracks", 100,0.0,100.0);
 
-    // for the ak15 jets //
-    Manager()->AddHisto("ak151pt", 300, 0, 300);
-    Manager()->AddHisto("ak151eta", 40,-3.14,3.14);
-    Manager()->AddHisto("ak151phi", 40,-3.14,3.14);
-    Manager()->AddHisto("ak151ntracks", 100,0.0,100.0);
-    Manager()->AddHisto("ak151mass", 400,0,400);
+    // Ak15 Histograms
+    Manager()->AddHisto("ak15Pt", 300, 0, 300);
+    Manager()->AddHisto("ak15Eta", 40,-3.14,3.14);
+    Manager()->AddHisto("ak15Phi", 40,-3.14,3.14);
+    Manager()->AddHisto("ak15NTracks", 100,0.0,100.0);
+    Manager()->AddHisto("ak15Mass", 400,0,400);
 
-    // abcd region variables & their limits //
+    // Sphericity Histograms
+    Manager()->AddHisto("labSphericity", 50, 0.0, 1.0);
+    Manager()->AddHisto("boostedSphericity", 50, 0.0, 1.0);
+
+    // MET Histograms
+    Manager()->AddHisto("metPt", 300, 0, 300);
+    Manager()->AddHisto("metPhi", 40, -3.14, 3.14);
+    Manager()->AddHisto("metEta", 40, -3.14,3.14);
+
+    // ABCD Histograms
     Manager()->AddHisto("ABCD_A", 10, 10.0, 20.0);
     Manager()->AddHisto("ABCD_B", 10, 20.0, 30.0);
-    Manager()->AddHisto("ABCD_C", 100, 30.0, 130.0);
+    Manager()->AddHisto("ABCD_C", 170, 30.0, 200.0);
     Manager()->AddHisto("ABCD_D", 10, 10.0, 20.0);
     Manager()->AddHisto("ABCD_E", 10, 20.0, 30.0);
     Manager()->AddHisto("ABCD_F0", 10, 30.0, 40.0);
     Manager()->AddHisto("ABCD_F1", 10, 40.0, 50.0);
     Manager()->AddHisto("ABCD_F2", 10, 50.0, 60.0);
     Manager()->AddHisto("ABCD_F3", 20, 60.0, 80.0);
-    Manager()->AddHisto("ABCD_F4", 20, 80.0, 100.0);
+    Manager()->AddHisto("ABCD_F4", 120, 80.0, 200.0);
     Manager()->AddHisto("ABCD_G", 10, 10.0, 20.0);
     Manager()->AddHisto("ABCD_H", 10, 20.0, 30.0);
     Manager()->AddHisto("ABCD_SR0", 10, 30.0, 40.0);
     Manager()->AddHisto("ABCD_SR1", 10, 40.0, 50.0);
     Manager()->AddHisto("ABCD_SR2", 10, 50.0, 60.0);
-    Manager()->AddHisto("ABCD_SR3", 10, 60.0, 80.0);
-    Manager()->AddHisto("ABCD_SR4", 20, 80.0, 100.0);
-
-    // for met //
-    Manager()->AddHisto("metpt", 300, 0, 300);
-    Manager()->AddHisto("metphi", 40, -3.14, 3.14);
-    Manager()->AddHisto("meteta", 40, -3.14,3.14);
-
-    // sphericity //
-    Manager()->AddHisto("sphericity", 50, 0.0, 1.0);
-    Manager()->AddHisto("boosted_sphericity", 50, 0.0, 1.0);
+    Manager()->AddHisto("ABCD_SR3", 20, 60.0, 80.0);
+    Manager()->AddHisto("ABCD_SR4", 20, 120.0, 200.0);
 
     // everything runs smoothly //
     return true;
@@ -710,21 +679,21 @@ MAbool user::Initialize(const MA5::Configuration& cfg, const std::map<std::strin
 ///////////////////////////////////////////////////////////////
 
 bool user::Execute(SampleFormat& sample, const EventFormat& event)
-{
-    // std::cout << "in the event loop" << std::endl;
-    // std::cout << "Number of electrons in event: " << event.rec()->electrons().size() << std::endl;
-    // std::cout << "Number of muons in event: " << event.rec()->muons().size() << std::endl;
-    // std::cout << "defining object cuts" << std::endl;
+{   
+    // Debugging Event Loop
+    //std::cout << "Entering new event" << std::endl;
+    //std::cout << "Number of electrons in event: " << event.rec()->electrons().size() << std::endl;
+    //std::cout << "Number of muons in event: " << event.rec()->muons().size() << std::endl;
+    //std::cout << "Defining object cuts" << std::endl;
 
+    // DEFINING OBJECT CUTS
 
+    // ELECTRONS
+    float const LOOSE_ELECTRON_MINPT = 15;
+    float const TIGHT_ELECTRON_MINPT = 35;
+    float const ELECTRON_MAXETA = 2.5;
 
-    // defining object cuts
-
-    // for electrons 
-
-    float const loose_electron_minpt = 15;
-    float const tight_electron_minpt = 35;
-    float const electron_maxeta = 2.5;
+    // ELECTRONS NOTES:
     // missing: id, and isolation
     // for delphes card:
         // ####################
@@ -744,27 +713,28 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
         // set PTRatioMax 0.12
         // }
 
-    // for muons
+    // MUONS
+    float const LOOSE_MUON_MINPT = 10;
+    float const TIGHT_MUON_MINPT = 30;
+    float const MUON_MAXETA = 2.4;
+    float const LOOSE_MUON_DZ = 0.1;
+    float const TIGHT_MUON_DZ = 0.05;
+    float const MUON_D0 = 0.02;
 
-    float const loose_muon_minpt = 10;
-    float const tight_muon_minpt = 30;
-    float const muon_maxeta = 2.4;
-    float const loose_muon_dz = 0.01;
-    float const tight_muon_dz = 0.05;
-    float const muon_d0 = 0.02;
+    // MUONS NOTES:
     // utils ref: https://github.com/SUEPPhysics/SUEPCoffea_dask/blob/d21ebb8d27d8a9c4f264fd680fc2003752aeab8b/workflows/WH_utils.py#L273-L274
     // how to implement: https://github.com/MadAnalysis/madanalysis5/blob/3900ec9002ee7c6963162e72feea58e6971c61eb/tools/SampleAnalyzer/Interfaces/delphes/delphes_cms.tcl#L544
 
-    // for ak4jets
+    // Ak4jets
+    float const AK4_MINPT = 30;
+    float const AK4_MAXETA = 2.4;
+    float const AK4LEP_DR = 0.4;
 
-    float const ak4_minpt = 30;
-    float const ak4_maxeta = 2.4;
-    float const ak4lep_deltar = 0.4;
+    // Ak4jets NOTES:
     // jet id: https://github.com/SUEPPhysics/SUEPCoffea_dask/blob/d21ebb8d27d8a9c4f264fd680fc2003752aeab8b/workflows/WH_utils.py#L67C73-L67C78
 
-    // adding weights
+    // APPLYING EVENT WEIGHTS
     // std::cout << "adding weights" << std::endl;
-
     double weight = 1.;
     if (!Configuration().IsNoEventWeight() && event.mc()!=0) {
         weight = event.mc()->weight();
@@ -774,224 +744,202 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     if (event.rec() == 0) {return true;}
 
     //////////////////////////////////////////////
-    //          applying the selections         //
+    //  Applying Base Lepton Object Selections  //
     //////////////////////////////////////////////
 
-
-    //////////////////////////////////////////////
-    //           object level selections        //
-    //////////////////////////////////////////////
-
-    // make loose leptons
-    // std::cout << "making loose leptons" << std::endl;
-
-
-    // setup for isolation
-
-    std::vector<RecTrackFormat> tracks = event.rec()->tracks();
+    // Isolation Eflow Collections
+    std::vector<RecTrackFormat> eflowTracks = event.rec()->EFlowTracks();
     std::vector<RecParticleFormat> eflowPhotons = event.rec()->EFlowPhotons();
     std::vector<RecParticleFormat> eflowNeutralHadrons = event.rec()->EFlowNeutralHadrons();
 
-    // electrons
-    vector<RecLeptonFormat> loose_electrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta, tracks, eflowPhotons, eflowNeutralHadrons);
-    // std::cout << "loose_electrons size: " << loose_electrons.size() << std::endl;
-    vector<RecLeptonFormat> loose_posElectrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta,tracks, eflowPhotons, eflowNeutralHadrons, "+");
-    vector<RecLeptonFormat> loose_negElectrons = filtered_loose_electrons(event.rec()->electrons(), loose_electron_minpt, electron_maxeta, tracks, eflowPhotons, eflowNeutralHadrons, "-");
+    // Electron Collections
 
-    // muons
-    vector<RecLeptonFormat> loose_muons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons);
-    // std::cout << "loose_muons size: " << loose_muons.size() << std::endl;
-    vector<RecLeptonFormat> loose_posMuons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons, "+");
-    vector<RecLeptonFormat> loose_negMuons = filtered_loose_muons(event.rec()->muons(), loose_muon_minpt, muon_maxeta, loose_muon_dz, muon_d0, tracks, eflowPhotons, eflowNeutralHadrons, "-");
+    // Electron Debugging
+    //std::cout << "Making electrons" << std::endl;
 
+    vector<RecLeptonFormat> loose_electrons = filter_electrons(event.rec()->electrons(), LOOSE_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+    vector<RecLeptonFormat> loose_posElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
+    vector<RecLeptonFormat> loose_negElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
 
-    // leptons (combined electrons and muons)
+    vector<RecLeptonFormat> tight_electrons = filter_electrons(loose_electrons, TIGHT_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+    vector<RecLeptonFormat> tight_posElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+    vector<RecLeptonFormat> tight_negElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_MINPT, ELECTRON_MAXETA, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+    
+    // Electron Debugging
+    //std::cout << "Original electrons size: " << event.rec()->electrons().size() << std::endl;
+    //std::cout << "loose_electrons size: " << loose_electrons.size() << std::endl;
+    //std::cout << "tight_electrons size: " << tight_electrons.size() << std::endl;
+
+    // Muon Collections
+
+    // Muon Debugging
+    //std::cout << "Making muons" << std::endl;
+
+    vector<RecLeptonFormat> loose_muons = filter_muons(event.rec()->muons(), LOOSE_MUON_MINPT, MUON_MAXETA, MUON_D0, LOOSE_MUON_DZ,  eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+    vector<RecLeptonFormat> loose_posMuons = filter_muons(loose_muons, LOOSE_MUON_MINPT, MUON_MAXETA, MUON_D0, LOOSE_MUON_DZ, eflowTracks, eflowPhotons, eflowNeutralHadrons,  "loose", "+");
+    vector<RecLeptonFormat> loose_negMuons = filter_muons(loose_muons, LOOSE_MUON_MINPT, MUON_MAXETA, MUON_D0, LOOSE_MUON_DZ, eflowTracks, eflowPhotons, eflowNeutralHadrons,  "loose", "-");
+
+    vector<RecLeptonFormat> tight_muons = filter_muons(loose_muons, TIGHT_MUON_MINPT, MUON_MAXETA, MUON_D0, TIGHT_MUON_DZ, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+    vector<RecLeptonFormat> tight_posMuons = filter_muons(tight_muons, TIGHT_MUON_MINPT, MUON_MAXETA, MUON_D0, TIGHT_MUON_DZ, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+    vector<RecLeptonFormat> tight_negMuons = filter_muons(tight_muons, TIGHT_MUON_MINPT, MUON_MAXETA, MUON_D0, TIGHT_MUON_DZ, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+
+    // Muon Debugging
+    //std::cout << "Original muons size: " << event.rec()->muons().size() << std::endl;
+    //std::cout << "loose_muons size: " << loose_muons.size() << std::endl;
+    //std::cout << "tight_muons size: " << tight_muons.size() << std::endl;
+
+    // Combining into loose Leptons
     vector<RecLeptonFormat> loose_leptons = loose_electrons;
     loose_leptons.insert(loose_leptons.end(), loose_muons.begin(), loose_muons.end());
-    // std::cout << "loose_leptons size: " << loose_leptons.size() << std::endl;
+
     vector<RecLeptonFormat> loose_posLeptons = loose_posElectrons;
     loose_posLeptons.insert(loose_posLeptons.end(), loose_posMuons.begin(), loose_posMuons.end());
+
     vector<RecLeptonFormat> loose_negLeptons = loose_negElectrons;
     loose_negLeptons.insert(loose_negLeptons.end(), loose_negMuons.begin(), loose_negMuons.end());
 
-    // jets
-    vector<RecJetFormat> Ak4jets = filtered_jets(event.rec()->jets(), ak4_minpt, ak4_maxeta, loose_leptons, ak4lep_deltar);
-
-    // sorting loose objects
-    leading(loose_electrons, loose_posElectrons, loose_negElectrons, loose_muons, loose_posMuons, loose_negMuons, loose_leptons, loose_posLeptons, loose_negLeptons, Ak4jets);
-
-    //////////////////////////////////////////////
-    //           event level selections         //
-    //////////////////////////////////////////////
-    // std::cout << "doing event level selections" << std::endl;
-
-
-    // orthogonality to ggf offline: remove events with no muons or electrons
-    // std::cout << "ggf orthogonality" << std::endl;
-
-
-
-    bool vetonoleptons = (loose_leptons.size() == 0);
-
-    // orthogonality to zh: remove events with a pair of OSSF leptons
-    // std::cout << "zh orthogonality" << std::endl;
-
-
-    bool SF = (loose_muons.size() == 2 || loose_electrons.size() == 2);
-    bool OS = (loose_posLeptons.size() == 1 && loose_negLeptons.size() == 1);
-    bool OSSF = OS && SF;
-    
-    // apply both orthogonality cuts
-    
-    // std::cout << "defining orthogonality cuts" << std::endl;
-    bool orthogonality = (!vetonoleptons) && (!OSSF);
-    // std::cout << "applying orthogonality cuts" << std::endl;
-    if (not Manager()->ApplyCut(orthogonality, "orthogonality")) return true;
-    // std::cout << "after orthogonality cuts" << std::endl;
-
-    // apply tight selection on leptons passing orthogonality cuts
-    // std::cout << "making tight leptons" << std::endl;
-    // std::cout << "loose_muons size before tight: " << loose_muons.size() << std::endl;
-    // std::cout << "loose_electrons size before tight: " << loose_electrons.size() << std::endl;
-    // std::cout << "tracks size before tight: " << tracks.size() << std::endl;
-    // std::cout << "photons size before tight: " << eflowPhotons.size() << std::endl;
-    // std::cout << "neutral hadrons size before tight: " << eflowNeutralHadrons.size() << std::endl;
-
-
-    // electrons
-    vector<RecLeptonFormat> tight_electrons = filtered_tight_electrons(loose_electrons, tight_electron_minpt, tracks, eflowPhotons, eflowNeutralHadrons);
-    vector<RecLeptonFormat> tight_posElectrons = filtered_tight_electrons(loose_electrons, tight_electron_minpt,tracks, eflowPhotons, eflowNeutralHadrons, "+");
-    vector<RecLeptonFormat> tight_negElectrons = filtered_tight_electrons(loose_electrons, tight_electron_minpt, tracks, eflowPhotons, eflowNeutralHadrons, "-");
-
-    // std::cout << "finished with tight electrons" << std::endl;
-
-    // muons
-    vector<RecLeptonFormat> tight_muons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons);
-    vector<RecLeptonFormat> tight_posMuons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons, "+");
-    vector<RecLeptonFormat> tight_negMuons = filtered_tight_muons(loose_muons, tight_muon_minpt, tight_muon_dz, tracks, eflowPhotons, eflowNeutralHadrons, "-");
-
-    // std::cout << "finished with tight muons" << std::endl;
-
-
-    // leptons (combined electrons and muons)
+    // Combining into tight Leptons
     vector<RecLeptonFormat> tight_leptons = tight_electrons;
     tight_leptons.insert(tight_leptons.end(), tight_muons.begin(), tight_muons.end());
+
     vector<RecLeptonFormat> tight_posLeptons = tight_posElectrons;
     tight_posLeptons.insert(tight_posLeptons.end(), tight_posMuons.begin(), tight_posMuons.end());
+
     vector<RecLeptonFormat> tight_negLeptons = tight_negElectrons;
     tight_negLeptons.insert(tight_negLeptons.end(), tight_negMuons.begin(), tight_negMuons.end());
 
-    // need exactly one tight lepton
+    // Lepton Debugging
+    //std::cout << "Loose Leptons size: " << loose_leptons.size() << std::endl;
+    //std::cout << "Tight Leptons size: " << tight_leptons.size() << std::endl;
 
-    bool onelep = (tight_leptons.size() == 1);
-    if (not Manager()->ApplyCut(onelep, "onelep")) return true;
+    // Sorting leptons
+    leading(loose_electrons, loose_posElectrons, loose_negElectrons, loose_muons, loose_posMuons, loose_negMuons, loose_leptons, loose_posLeptons, loose_negLeptons);
+    leading(tight_electrons, tight_posElectrons, tight_negElectrons, tight_muons, tight_posMuons, tight_negMuons, tight_leptons, tight_posLeptons, tight_negLeptons);
 
-    // std::cout << "finished with tight leptons" << std::endl;
-    // std::cout << "tight Leptons size: " << tight_leptons.size() << std::endl;
+    //////////////////////////////////////////////
+    //           Event level selections         //
+    //////////////////////////////////////////////
 
+    //std::cout << "Starting event level selections" << std::endl;
 
-    // // check sizes again
-    // std::cout << "tight_muons size: " << tight_muons.size() << std::endl;
-    // std::cout << "tight_electrons size: " << tight_electrons.size() << std::endl;
-    // std::cout << "tracks size after tight: " << tracks.size() << std::endl;
-    // std::cout << "photons size after tight: " << eflowPhotons.size() << std::endl;
-    // std::cout << "neutral hadrons size after tight: " << eflowNeutralHadrons.size() << std::endl;
+    // Orthogonality to GGF offline: Remove events with no leptons
+    //std::cout << "GGF Orthogonality" << std::endl;
+    bool GGFOrthogonality = (loose_leptons.size() == 0);
 
-    // jets
-    vector<RecJetFormat> tight_Ak4jets = filtered_jets(event.rec()->jets(), ak4_minpt, ak4_maxeta, tight_leptons, ak4lep_deltar);
-
-    // std::cout << "finished with tight ak4jets" << std::endl;
-
-
-    // sorting tight objects
-    leading(tight_electrons, tight_posElectrons, tight_negElectrons, tight_muons, tight_posMuons, tight_negMuons, tight_leptons, tight_posLeptons, tight_negLeptons, tight_Ak4jets);
-
-    // std::cout << "finished with sorting tight objects" << std::endl;
-
-    // need at least one ak4
-    bool oneak4 = (Ak4jets.size() > 0);
-    if (not Manager()->ApplyCut(oneak4, "oneak4")) return true;
-
-    // w
-
-    float const minwpt = 60;
-    float const minwmass = 30;
-    float const maxwmass = 130;
-
-    // tracks
-
-    float const mintrackpt = 1;
-    float const maxtracketa = 2.5;
-    float const maxtrackd0 = 0.05;
-    float const maxtrackdz = 0.05;
-    float const mintracklepdr = 0.4;
-
-    // std::cout << "Calling getak15jets..." << std::endl;
-    std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> ak15jetsout;
-    if (tight_leptons.empty()) {
-        // std::cout << "No tight leptons, skipping AK15 clustering." << std::endl;
-        return true;
-    }
-    else {
-          ak15jetsout = getak15jets(event.rec()->tracks(), tight_leptons, mintrackpt, maxtracketa, maxtrackdz, maxtrackd0, mintracklepdr);
-    }
+    // Orthogonality to ZH: Remove events with a pair of loose OSSF leptons
+    // std::cout << "ZH Orthogonality" << std::endl;
+    bool twoOSleptons = (loose_posLeptons.size() == 1 && loose_negLeptons.size() == 1);                  // Require exactly two opposite-sign leptons (either muons or electrons)
+    bool twoSFleptons = (loose_muons.size() == 2 || loose_electrons.size() == 2);                        // Require exactly two muons or exactly two electrons
+    bool LeadpTleptons = (loose_leptons.size() > 0) && (loose_leptons.at(0).pt() >= 25);                 // Require the leading lepton pT to be >= 25 GeV
+    bool ZHOrthogonality = twoOSleptons && twoSFleptons && LeadpTleptons;                                // Concatenating cuts
     
-    // std::cout << "getak15jets finished executing." << std::endl;
+    // Apply both orthogonality cuts
+    //std::cout << "Joint orthogonality" << std::endl;
+    bool orthogonality = (!GGFOrthogonality) && (!ZHOrthogonality);
+    if (not Manager()->ApplyCut(orthogonality, "orthogonality")) return true;
 
-    bool metptcut1 = (event.rec()->MET().pt() > 20);
-    if (!Manager()->ApplyCut(metptcut1, "metpt20")) return true;
+    // Exactly one tight lepton
+    //std::cout << "Exactly One Tight" << std::endl;
+    bool oneLep = (tight_leptons.size() == 1);
+    if (not Manager()->ApplyCut(oneLep, "oneLep")) return true;
 
-    // std::cout << "Size of ak15jetsout.first: " << ak15jetsout.first.size() << std::endl;
-    // std::cout << "Size of ak15jetsout.second: " << ak15jetsout.second.size() << std::endl;
-
-    // Ensure we have at least 2 elements before accessing index 1
-    if (ak15jetsout.second.at(0).size() < 2) {
-        std::cerr << "Error: getak15jets returned a vector with insufficient elements (size = " 
-                << ak15jetsout.second.at(0).size() << ")" << std::endl;
-        return false;
-    }
-
-    // Assign values only if the size is sufficient
-    // std::cout << "Assigning ak15jets and ak15jetsconst..." << std::endl;
-    std::vector<fastjet::PseudoJet> ak15jets = ak15jetsout.first;
-    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    std::vector<std::vector<fastjet::PseudoJet>> ak15jetsconst = ak15jetsout.second;
-    // std::cout << "ak15jetsconst size: " << ak15jetsconst.size() << std::endl;
-
-    // std::cout << "Printing ak15jets elements:" << std::endl;
-    // for (size_t i = 0; i < ak15jets.size(); i++) {
-    //     std::cout << "Jet " << i << " pt: " << ak15jets[i].pt() << std::endl;
-    // }
-
-    // std::cout << "Printing ak15jetsconst elements:" << std::endl;
-    // for (size_t i = 0; i < ak15jetsconst.size(); i++) {
-    //     if (ak15jetsconst[i].empty()) {
-    //         std::cerr << "WARNING: ak15jetsconst[" << i << "] is empty!" << std::endl;
-    //     } else {
-    //         std::cout << "ak15jetsconst[" << i << "] size: " << ak15jetsconst[i].size() << std::endl;
-    //     }
-    // }
-
-    // need at least one ak15
-    bool oneak15 = (ak15jets.size() > 0);
-    if (not Manager()->ApplyCut(oneak15, "oneak15")) return true;
-    // std::cout << "Checking ak15jetsconst[0] size: " << ak15jetsconst.at(0).size() << std::endl;
-
-    // second met cut
-    bool metptcut2 = (event.rec()->MET().pt() > 30);
-    if (!Manager()->ApplyCut(metptcut2, "metpt30")) return true;
-
-    // Check leptons exist
-    if (tight_leptons.empty()) {
-      std::cerr << "ERROR: No leptons found! Cannot reconstruct W." << std::endl;
-      return false;
-    }
+    // Debugging Leptons
+    //std::cout << "Tight Electrons size: " << tight_electrons.size() << std::endl;
+    //std::cout << "Tight Muons size: " << tight_muons.size() << std::endl;
+    //std::cout << "Tight Leptons size: " << tight_leptons.size() << std::endl;
     // std::cout << "Lepton px: " << tight_leptons.at(0).px() 
     //         << " py: " << tight_leptons.at(0).py() 
     //         << " pz: " << tight_leptons.at(0).pz() 
     //         << " E: " << tight_leptons.at(0).e() << std::endl;
+    
+    // Ak4 Jet Collection
+    //std::cout << "Defining ak4jet objects" << std::endl;
+    vector<RecJetFormat> Ak4jets = filtered_jets(event.rec()->jets(), AK4_MINPT, AK4_MAXETA, AK4LEP_DR, tight_leptons);
 
-    // Check MET exists
+    // Sorting Leptons and Ak4s
+    leading(tight_electrons, tight_posElectrons, tight_negElectrons, tight_muons, tight_posMuons, tight_negMuons, tight_leptons, tight_posLeptons, tight_negLeptons, Ak4jets);
+
+    // Require at least one ak4
+    bool oneAk4 = (Ak4jets.size() > 0);
+    if (not Manager()->ApplyCut(oneAk4, "oneAk4")) return true;
+
+    // Require MET > 20 GeV
+    bool METpTCut_20 = (event.rec()->MET().pt() > 20);
+    if (!Manager()->ApplyCut(METpTCut_20, "METpTCut_20")) return true;
+
+    //////////////////////////////////////////////
+    //  Building the W and Clustering the Ak15  //
+    //////////////////////////////////////////////
+
+    // W Boson
+    float const MIN_W_PT = 60;
+    float const MIN_W_MASS = 30;
+    float const MAX_W_MASS = 130;
+
+    // Track ID
+    float const MIN_TRACK_PT = 1;
+    float const MAX_TRACK_ETA = 2.5;
+    float const MAX_TRACK_D0 = 0.05;
+    float const MAX_TRACK_DZ = 0.05;
+    float const MIN_TRACK_LEP_DR = 0.4;
+
+    // Ak15 pT
+    float const AK15JET_PT_MIN = 60;
+
+    // Misc
+    float const MIN_DPHI = 1.5;
+    float const W_SUEP_PT_RATIO = 3.0;
+
+    // W reconstruction
+    ParticleBaseFormat recoW;
+    recoW += tight_leptons.at(0).momentum();
+    recoW += event.rec()->MET().momentum();
+
+    // W Debugging
+    // std::cout << "W candidate mass: " << recoW.m() << std::endl;
+
+    // Jet Clustering
+    //std::cout << "Building Ak15 Jets" << std::endl;
+    std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> Ak15Result = getAk15Jets(event.rec()->tracks(), tight_leptons, MIN_TRACK_PT, MAX_TRACK_ETA, MAX_TRACK_DZ, MAX_TRACK_D0, MIN_TRACK_LEP_DR);
+    //std::cout << "Ak15s clustered" << std::endl;
+
+    std::vector<fastjet::PseudoJet> Ak15Jets = Ak15Result.first;
+    std::vector<std::vector<fastjet::PseudoJet>> Ak15jetConstituents = Ak15Result.second;
+
+    // Jet Clustering Debugging
+    // std::cout << "Ak15Jets size: " << Ak15Jets.size() << std::endl;
+    // std::cout << "Ak15jetConstituents size: " << Ak15jetConstituents.size() << std::endl;
+
+    // std::cout << "Printing Ak15Jets elements:" << std::endl;
+    // for (size_t i = 0; i < Ak15Jets.size(); i++) {
+    //     std::cout << "Jet " << i << " pt: " << Ak15Jets[i].pt() << std::endl;
+    // }
+
+    // std::cout << "Printing Ak15jetConstituents elements:" << std::endl;
+    // for (size_t i = 0; i < Ak15jetConstituents.size(); i++) {
+    //     if (Ak15jetConstituents[i].empty()) {
+    //         std::cerr << "WARNING: Ak15jetConstituents[" << i << "] is empty!" << std::endl;
+    //     } else {
+    //         std::cout << "Ak15jetConstituents[" << i << "] size: " << Ak15jetConstituents[i].size() << std::endl;
+    //     }
+    // }
+
+
+    //////////////////////////////////////////////
+    //           Event level selections         //
+    //////////////////////////////////////////////
+
+    // Require at least one Ak15 with pT > 60 GeV
+    bool oneAk15 = (Ak15Jets.size() > 0);
+    bool minAk15pT = (Ak15Jets.at(0).pt() > AK15JET_PT_MIN);
+    bool Ak15 = (oneAk15) && (minAk15pT);
+    if (not Manager()->ApplyCut(Ak15, "Ak15")) return true;
+
+    // Require MET > 30 GeV
+    bool METpTCut_30 = (event.rec()->MET().pt() > 30);
+    if (!Manager()->ApplyCut(METpTCut_30, "METpTCut_30")) return true;
+
+    // MET Debugging
     // if (!event.rec()) {
     //     std::cerr << "ERROR: event.rec() is NULL!" << std::endl;
     //     return false;
@@ -1001,247 +949,178 @@ bool user::Execute(SampleFormat& sample, const EventFormat& event)
     //         << " pz: " << event.rec()->MET().pz() 
     //         << " E: " << event.rec()->MET().e() << std::endl;
 
-    // W reconstruction
-    ParticleBaseFormat recoW;
-    recoW += tight_leptons.at(0).momentum();
-    recoW += event.rec()->MET().momentum();
+    // Require W pT > 60 GeV
+    bool wPtCut = (recoW.pt() > MIN_W_PT);
+    if (not Manager()->ApplyCut(wPtCut, "wPtCut")) return true;
 
-    // std::cout << "W candidate mass: " << recoW.m() << std::endl;
-    bool wptcut = (recoW.pt() > minwpt);
-    if (not Manager()->ApplyCut(wptcut, "wptcut")) return true;
+    // Require OnShell W
+    bool onShellW = (recoW.m() >= MIN_W_MASS && recoW.m() <= MAX_W_MASS);
+    if (!Manager()->ApplyCut(onShellW, "onShellW")) return true;
 
-    // std::cout << "Calling ApplyCut for onshell..." << std::endl;
-    bool onshell = (recoW.m() >= minwmass && recoW.m() <= maxwmass);
-    // std::cout << "W mass: " << recoW.m() << std::endl;
-    // std::cout << "Applying cut: onshell" << std::endl;
-    if (!Manager()->ApplyCut(onshell, "onshell")) {
-        // std::cout << "Cut failed: onshell" << std::endl;
-        return true;
-    }
-
-    // btag veto -- for now
-
-    bool noBs = nobtag(tight_Ak4jets);
+    // Btag Veto
+    bool noBs = noBTag(Ak4jets);
     if (not Manager()->ApplyCut(noBs, "noBs")) return true;
 
-    // std::cout << "btag veto applied" << std::endl;
+    // dPhi(W, SUEP)
+    float dPhi_W_SUEP_Val = recoW.phi() - Ak15Jets.at(0).phi();
+    if (dPhi_W_SUEP_Val > M_PI) 
+    {
+        dPhi_W_SUEP_Val = dPhi_W_SUEP_Val - 2*M_PI;
+    }
+    else if (dPhi_W_SUEP_Val < -M_PI)
+    {
+        dPhi_W_SUEP_Val = dPhi_W_SUEP_Val + 2*M_PI;
+    }
+    bool dPhi_W_SUEP = (fabs(dPhi_W_SUEP_Val) > MIN_DPHI);
+    if (not Manager()->ApplyCut(dPhi_W_SUEP, "dPhi_W_SUEP")) return true;
 
-    // dphi w & suep
-
-    float const mindphiwsuep = 1.5;
-
-    float dphi_w_suep = fabs(recoW.phi() - ak15jets.at(0).phi());
-    if (dphi_w_suep > M_PI) {
-        dphi_w_suep = 2 * M_PI - dphi_w_suep;
-        }
-    bool dphiwsuep = (dphi_w_suep > mindphiwsuep);
-    if (not Manager()->ApplyCut(dphiwsuep, "dphiwsuep")) return true;
-
-    // dphi met & suep
-
-    float const mindphimetsuep = 1.5;
-
-    float dphi_suep_met = fabs(event.rec()->MET().phi() - ak15jets.at(0).phi());
-    if (dphi_suep_met > M_PI) {
-        dphi_suep_met = 2 * M_PI - dphi_suep_met;
-        }
-    bool dphimetsuep = (dphi_suep_met > mindphimetsuep);
-    if (not Manager()->ApplyCut(dphimetsuep, "dphimetsuep")) return true;    
+    // dPhi(MET, SUEP)
+    float dPhi_MET_SUEP_Val = event.rec()->MET().phi() - Ak15Jets.at(0).phi();
+    if (dPhi_MET_SUEP_Val > M_PI) 
+    {
+        dPhi_MET_SUEP_Val = dPhi_MET_SUEP_Val - 2*M_PI;
+    }
+    else if (dPhi_MET_SUEP_Val < -M_PI)
+    {
+        dPhi_MET_SUEP_Val = dPhi_MET_SUEP_Val + 2*M_PI;
+    }
+    bool dPhi_MET_SUEP = (fabs(dPhi_MET_SUEP_Val) > MIN_DPHI);
+    if (not Manager()->ApplyCut(dPhi_MET_SUEP, "dPhi_MET_SUEP")) return true;
     
-    // dphi lepton & suep
-
-    float const mindphilepsuep = 1.5;
-
-    float dphi_lep_suep = fabs(tight_leptons.at(0).phi() - ak15jets.at(0).phi());
-    if (dphi_lep_suep > M_PI) {
-        dphi_lep_suep = 2 * M_PI - dphi_lep_suep;
-        }
-    bool dphilepsuep = (dphi_lep_suep > mindphilepsuep);
-    if (not Manager()->ApplyCut(dphilepsuep, "dphilepsuep")) return true;
-
-    // ak4 lepton deltaR
-    // std::cout << "Checking deltaR for Ak4jets..." << std::endl;
-    // std::cout << "Ak4jets size: " << Ak4jets.size() << std::endl;
-    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-
-    // ak4 ak15 overlap
-    bool overlap = false;
-    if (!tight_Ak4jets.empty() && !ak15jets.empty()) {
-        // std::cout << "Checking deltaR for Ak4jets and ak15jets..." << std::endl;
-        overlap = (deltar(tight_Ak4jets.at(0), ak15jets.at(0)) < 0.4);
+    // dPhi(Lepton, SUEP)
+    float dPhi_Lep_SUEP_Val = tight_leptons.at(0).phi() - Ak15Jets.at(0).phi();
+    if (dPhi_Lep_SUEP_Val > M_PI) 
+    {
+        dPhi_Lep_SUEP_Val = dPhi_Lep_SUEP_Val - 2*M_PI;
     }
-    if (not Manager()->ApplyCut(overlap, "overlap")) return true;
-
-    // w_pt / w-suep < 3
-
-    float const maxratio = 3.0;
-
-    bool ratio = (recoW.pt() / ak15jets.at(0).pt() < maxratio);
-    if (not Manager()->ApplyCut(ratio, "ratio")) return true;
-
-    // met selections
-
-    float const mindphimetak4 = 1.5;
-
-    float dphi_ak4_met = fabs(event.rec()->MET().phi() - tight_Ak4jets.at(0).phi());
-    if (dphi_ak4_met > M_PI) {
-        dphi_ak4_met = 2 * M_PI - dphi_ak4_met;
-        }
-    bool mindphimetak4cut = (dphi_ak4_met > mindphimetak4);
-    if (not Manager()->ApplyCut(mindphimetak4cut, "mindphimetak4cut")) return true;
-
-    // std::cout << "ak4 cuts applied" << std::endl;
-
-    // ak-15
-
-    float const minak15pt = 60;
-
-
-
-    // ak15 pt
-    // std::cout << "Checking if ak15jets is empty..." << std::endl;
-    // std::cout << "ak15jets size: " << ak15jets.size() << std::endl;
-    if (!ak15jets.empty()) {
-        // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    } else {
-        std::cerr << "ERROR: ak15jets is empty, cannot access leading jet!" << std::endl;
+    else if (dPhi_Lep_SUEP_Val < -M_PI)
+    {
+        dPhi_Lep_SUEP_Val = dPhi_Lep_SUEP_Val + 2*M_PI;
     }
-    bool minak15ptcut = (ak15jets.at(0).pt() > minak15pt);
-    // std::cout << "Leading ak15 jet pt: " << ak15jets.at(0).pt() << std::endl;
-    if (not Manager()->ApplyCut(minak15ptcut, "minak15ptcut")) return true;
+    bool dPhi_Lep_SUEP = (fabs(dPhi_Lep_SUEP_Val) > MIN_DPHI);
+    if (not Manager()->ApplyCut(dPhi_Lep_SUEP, "dPhi_Lep_SUEP")) return true;
 
+    // Require Ak4 and Ak15 Overlap
+    bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 0.4);
+    if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap")) return true;
 
-    // sphericity
+    // WpT / SUEPpT < 3
+    bool W_SUEP_ratio = (recoW.pt() / Ak15Jets.at(0).pt() < W_SUEP_PT_RATIO);
+    if (not Manager()->ApplyCut(W_SUEP_ratio, "W_SUEP_ratio")) return true;
 
-    // float const minsphericity = 0.3;
+    // dPhi(MET, Ak4)
+    float dPhi_MET_Ak4_Val = event.rec()->MET().phi() - Ak4jets.at(0).phi();
+    if (dPhi_MET_Ak4_Val > M_PI) 
+    {
+        dPhi_MET_Ak4_Val = dPhi_MET_Ak4_Val - 2*M_PI;
+    }
+    else if (dPhi_MET_Ak4_Val < -M_PI)
+    {
+        dPhi_MET_Ak4_Val = dPhi_MET_Ak4_Val + 2*M_PI;
+    }
+    bool dPhi_MET_Ak4 = (fabs(dPhi_MET_Ak4_Val) > MIN_DPHI);
+    if (not Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4")) return true;
 
-    // bool passed_sphericity_cut = (sphericityval > minsphericity);
-    // if (not Manager()->ApplyCut(passed_sphericity_cut, "boosted_sphericity")) return true;
+    // Debugging event selections
+    //std::cout << "All cuts successfully applied" << std::endl;
 
+    //////////////////////////////////////////////
+    //           Filling Histograms             //
+    //////////////////////////////////////////////
 
-    // boosted
-    auto leading_ak15const = ak15jetsout.second.at(0);
-    auto leading_ak15jet = ak15jetsout.first.at(0);
-    std::vector<fastjet::PseudoJet> boosted_constituents = boost_to_jet_frame(leading_ak15const, leading_ak15jet);
-    double boosted_sphericityval = sphericity(boosted_constituents, 1.0);
+    // Calculating Lab and Boosted Sphericity
+    double labSphericity = sphericity(Ak15jetConstituents.at(0), 1.0);
+    std::vector<fastjet::PseudoJet> boostedConstituents = boostToSUEP(Ak15Result.second.at(0), Ak15Result.first.at(0));
+    double boostedSphericity = sphericity(boostedConstituents, 1.0);
 
-    // unboosted
+    // W Histograms
+    Manager()->FillHisto("wMass", recoW.m());
+    Manager()->FillHisto("wPt", recoW.pt());
+    Manager()->FillHisto("wEta", recoW.eta());
+    Manager()->FillHisto("wPhi", recoW.phi());
 
-    double sphericityval = sphericity(ak15jetsconst.at(0), 1.0);
-
-    // std::cout << "all cuts successfully applied" << std::endl;
-
-    // fill all histos
-
-    // w
-
-    Manager()->FillHisto("wmass", recoW.m());
-    Manager()->FillHisto("wpt", recoW.pt());
-    Manager()->FillHisto("weta", recoW.eta());
-    Manager()->FillHisto("wphi", recoW.phi());
-
-    // muons or electrons, depending on which lepton is in the event
-
-
-
-    if(tight_muons.size() > 0) {
-        Manager()->FillHisto("muo1pt", tight_muons.at(0).pt());
-        Manager()->FillHisto("muo1eta", tight_muons.at(0).eta());
-        Manager()->FillHisto("muo1phi", tight_muons.at(0).phi());
-        Manager()->FillHisto("tightmu", tight_muons.size());
+    // Muons or Electron Histograms
+    if(tight_muons.size() > 0) 
+    {
+        Manager()->FillHisto("muPt", tight_muons.at(0).pt());
+        Manager()->FillHisto("muEta", tight_muons.at(0).eta());
+        Manager()->FillHisto("muPhi", tight_muons.at(0).phi());
+        Manager()->FillHisto("looseMu", loose_muons.size());
+        Manager()->FillHisto("tightMu", tight_muons.size());
+    }
+    else 
+    {
+        Manager()->FillHisto("elePt", tight_electrons.at(0).pt());
+        Manager()->FillHisto("eleEta", tight_electrons.at(0).eta());
+        Manager()->FillHisto("elePhi", tight_electrons.at(0).phi());
+        Manager()->FillHisto("looseEle", loose_electrons.size());
+        Manager()->FillHisto("tightEle", tight_electrons.size());
     }
 
-    else {
-        Manager()->FillHisto("ele1pt", tight_electrons.at(0).pt());
-        Manager()->FillHisto("ele1eta", tight_electrons.at(0).eta());
-        Manager()->FillHisto("ele1phi", tight_electrons.at(0).phi());
-        Manager()->FillHisto("tightele", tight_electrons.size());
+    // Lepton Histograms
+    Manager()->FillHisto("lepPt", tight_leptons.at(0).pt());
+    Manager()->FillHisto("lepEta", tight_leptons.at(0).eta());
+    Manager()->FillHisto("lepPhi", tight_leptons.at(0).phi());
+    Manager()->FillHisto("looseLep", loose_leptons.size());
+    Manager()->FillHisto("tightLep", tight_leptons.size());
 
-    }
+    // Ak4 Histograms
+    Manager()->FillHisto("NJets", Ak4jets.size());
+    Manager()->FillHisto("ak4Pt", Ak4jets.at(0).pt());
+    Manager()->FillHisto("ak4Eta", Ak4jets.at(0).eta());
+    Manager()->FillHisto("ak4Phi", Ak4jets.at(0).phi());
+    Manager()->FillHisto("ak4NTracks", Ak4jets.at(0).ntracks());
 
-    if(loose_muons.size() > 0){
-        Manager()->FillHisto("loosemu", loose_muons.size());
-    }
-    else {
-        Manager()->FillHisto("loose_ele", loose_electrons.size());
-    }
-
-   // fill lepton histos
-   Manager()->FillHisto("lep1pt", tight_leptons.at(0).pt());
-   Manager()->FillHisto("lep1eta", tight_leptons.at(0).eta());
-   Manager()->FillHisto("lep1phi", tight_leptons.at(0).phi());
-   Manager()->FillHisto("looselep", loose_leptons.size());
-   Manager()->FillHisto("tightlep", tight_leptons.size());
-
-
-   
-    // ak4
-
-    Manager()->FillHisto("NJets", tight_Ak4jets.size());
-    Manager()->FillHisto("ak41pt", tight_Ak4jets.at(0).pt());
-    Manager()->FillHisto("ak41eta", tight_Ak4jets.at(0).eta());
-    Manager()->FillHisto("ak41phi", tight_Ak4jets.at(0).phi());
-    Manager()->FillHisto("ak41ntracks", tight_Ak4jets.at(0).ntracks());
-
-    // ak15
-
-    Manager()->FillHisto("ak151pt", ak15jets.at(0).pt());
-    Manager()->FillHisto("ak151eta", ak15jets.at(0).eta());
-    double phi_recalc = ak15jets.at(0).phi();
+    // Ak15 Histograms
+    Manager()->FillHisto("ak15Pt", Ak15Jets.at(0).pt());
+    Manager()->FillHisto("ak15Eta", Ak15Jets.at(0).eta());
+    double phi_recalc = Ak15Jets.at(0).phi();
     if (phi_recalc > M_PI){
         phi_recalc -= 2 * M_PI;
     }
-    Manager()->FillHisto("ak151phi", phi_recalc);
-    Manager()->FillHisto("ak151ntracks", ak15jetsconst.at(0).size());
-    Manager()->FillHisto("ak151mass", ak15jets.at(0).m());
+    Manager()->FillHisto("ak15Phi", phi_recalc);
+    Manager()->FillHisto("ak15NTracks", Ak15jetConstituents.at(0).size());
+    Manager()->FillHisto("ak15Mass", Ak15Jets.at(0).m());
 
-    // std::cout << "all histos successfully filled" << std::endl;
+    
+    // MET Histograms
+    Manager()->FillHisto("metPt", (event.rec)()->MET().pt());
+    Manager()->FillHisto("metPhi", event.rec()->MET().phi());
+    Manager()->FillHisto("metEta", event.rec()->MET().eta());
 
+    // Sphericity
+    Manager()->FillHisto("labSphericity", labSphericity);
+    Manager()->FillHisto("boostedSphericity", boostedSphericity);
 
     // extended abcd regions
 
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) && (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)) {Manager()->FillHisto("ABCD_A", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)){Manager()->FillHisto("ABCD_B", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.3 <= boosted_sphericityval && boosted_sphericityval < 0.4)){Manager()->FillHisto("ABCD_C", ak15jetsconst.at(0).size());}
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_D", ak15jetsconst.at(0).size());}
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.3 <= boostedSphericity && boostedSphericity < 0.4)) {Manager()->FillHisto("ABCD_A", Ak15jetConstituents.at(0).size());}
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) &&  (0.3 <= boostedSphericity && boostedSphericity < 0.4)){Manager()->FillHisto("ABCD_B", Ak15jetConstituents.at(0).size());}
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) &&  (0.3 <= boostedSphericity && boostedSphericity < 0.4)){Manager()->FillHisto("ABCD_C", Ak15jetConstituents.at(0).size());}
 
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_E", ak15jetsconst.at(0).size());}
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.4 <= boosted_sphericityval && boosted_sphericityval < 0.5)){Manager()->FillHisto("ABCD_F4", ak15jetsconst.at(0).size());}
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_D", Ak15jetConstituents.at(0).size());}
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_E", Ak15jetConstituents.at(0).size());}
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_F0", Ak15jetConstituents.at(0).size());}
+    if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_F1", Ak15jetConstituents.at(0).size());}
+    if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_F2", Ak15jetConstituents.at(0).size());}
+    if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_F3", Ak15jetConstituents.at(0).size());}
+    if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) &&  (0.4 <= boostedSphericity && boostedSphericity < 0.5)){Manager()->FillHisto("ABCD_F4", Ak15jetConstituents.at(0).size());}
     
-    if ((10 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 20) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_G", ak15jetsconst.at(0).size());}
-    if ((20 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 30) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_H", ak15jetsconst.at(0).size());}
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_G", Ak15jetConstituents.at(0).size());}
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_H", Ak15jetConstituents.at(0).size());}
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_SR0", Ak15jetConstituents.at(0).size());}
+    if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_SR1", Ak15jetConstituents.at(0).size());}
+    if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_SR2", Ak15jetConstituents.at(0).size());}
+    if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_SR3", Ak15jetConstituents.at(0).size());}
+    if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) &&  (0.5 <= boostedSphericity && boostedSphericity <= 1.0)){Manager()->FillHisto("ABCD_SR4", Ak15jetConstituents.at(0).size());}
 
-    if ((30 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 40) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR0", ak15jetsconst.at(0).size());}
-    if ((40 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 50) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR1", ak15jetsconst.at(0).size());}
-    if ((50 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 60) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR2", ak15jetsconst.at(0).size());}
-    if ((60 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 80) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR3", ak15jetsconst.at(0).size());}
-    if ((80 <= (ak15jetsconst.at(0).size()) && (ak15jetsconst.at(0).size()) < 200) &&  (0.5 <= boosted_sphericityval && boosted_sphericityval < 1.0)){Manager()->FillHisto("ABCD_SR4", ak15jetsconst.at(0).size());}
-
-    // std::cout << "all abcd successfully made" << std::endl;
-
-    
-    // met
-
-    Manager()->FillHisto("metpt", (event.rec)()->MET().pt());
-    Manager()->FillHisto("metphi", event.rec()->MET().phi());
-    Manager()->FillHisto("meteta", event.rec()->MET().eta());
-
-    // sphericity
-    Manager()->FillHisto("sphericity", sphericityval);
-    Manager()->FillHisto("boosted_sphericity", boosted_sphericityval);
-
-    // std::cout << "finished" << std::endl;
-
+    // std::cout << "All histos successfully filled" << std::endl;
     return true;
 }
 
 ///////////////////////////////////////////////////////////////
-//                        finalize                           //
-//    function called one time at the end of the analysis    //
+//                        Finalize                           //
+//    Function called one time at the end of the analysis    //
 ///////////////////////////////////////////////////////////////
 
 void user::Finalize(const SampleFormat& summary, const std::vector<SampleFormat>& files){}
