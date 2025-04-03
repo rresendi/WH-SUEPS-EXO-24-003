@@ -36,7 +36,7 @@ def plotKinematic(bin_centers, yields, uncertainties, kinematic):
 
     # Dynamically adjust the x-axis range based on the kinematic value
     plt.xlim(min(bin_centers) - 0.5, max(bin_centers) + 0.5)
-    outname = f"/eos/user/g/gdecastr/www/WH_Reinterpretation/FirstPlots/Hadronic_2_2_OGCard/{kinematic}.png"
+    outname = f"{kinematic}.png"
     plt.savefig(outname)
     plt.close()
     print(f"Saved plot: {outname}")
