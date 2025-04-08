@@ -865,7 +865,11 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
 
     // Require at least one Ak15 with pT > 60 GeV
     bool oneAk15 = (Ak15Jets.size() > 0);
-    bool minAk15pT = (Ak15Jets.at(0).pt() > AK15JET_PT_MIN);
+    bool minAk15pT = false;
+    if (oneAk15)
+    {
+        minAk15pT = (Ak15Jets.at(0).pt() > AK15JET_PT_MIN);
+    }
     bool Ak15 = (oneAk15) && (minAk15pT);
     if (not Manager()->ApplyCut(Ak15, "Ak15"))
         return true;
