@@ -1,0 +1,39 @@
+{
+    "files.associations": {
+        "vector": "cpp",
+        "__bit_reference": "cpp",
+        "cmath": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "cwchar": "cpp",
+        "initializer_list": "cpp",
+        "iosfwd": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "stdexcept": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "typeinfo": "cpp",
+        "__split_buffer": "cpp",
+        "__verbose_abort": "cpp",
+        "memory": "cpp",
+        "algorithm": "cpp",
+        "array": "cpp",
+        "__hash_table": "cpp",
+        "unordered_map": "cpp",
+        "bitset": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "ios": "cpp"
+    }
+    "cpp.lint.enabled": true,
+    "cpp.lint.linter": "clang", // You can use "clang" or others like "gcc"
+    "cpp.lint.lintOnSave": true, // Enable linting on save
+    "editor.formatOnSave": true, // Automatically format on save
+    "C_Cpp.clang_format_style": "file" // Use .clang-format file for style rules
+  
+}
