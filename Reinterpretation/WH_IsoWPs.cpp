@@ -111,7 +111,7 @@ vector<RecLeptonFormat> filter_muons(const vector<RecLeptonFormat> &objects,
             filtered.push_back(obj);
             continue;
         }
-        elif (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
+        if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
         {
             continue;
         }
@@ -157,7 +157,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
             filtered.push_back(obj);
             continue;
         }
-        elif (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
+        if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
         {
             continue;
         }
