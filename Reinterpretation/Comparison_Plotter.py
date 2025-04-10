@@ -57,7 +57,7 @@ def main():
     parser.add_argument("--total_gen", type=float, required=True, help="Total generated events")
     args = parser.parse_args()
 
-    norm_factor = 1
+    norm_factor = args.lumi * args.xsec / args.total_gen
 
     os.makedirs(args.outdir, exist_ok=True)
 
@@ -87,9 +87,14 @@ def main():
 
         # Normalize SAF data with scaling
         saf_yields = saf_data * norm_factor
-        saf_yields = saf_yields / np.sum(saf_yields)
         saf_uncertainties = np.sqrt(saf_data) * norm_factor
 
+        bin_widths = np.diff(bin_edges)
+        total_yield = np.sum(saf_yields * bin_widths)
+        if total_yield > 0:
+            saf_yields /= total_yield
+            saf_uncertainties /= total_yield
+    
         fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True, figsize=(7, 6))
 
         ax1.hist(bin_centers, bins=bin_edges, weights=root_vals, histtype='step', color='darkgreen', label=f'CMSSW: {root_name}', density = True)
