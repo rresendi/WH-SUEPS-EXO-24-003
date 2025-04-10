@@ -23,7 +23,7 @@ paired_histos = [
     ("SUEP_mass_SR", "ak15Mass", (150, 0, 2000)),
     ("SUEP_nconst_SR", "ak15NTracks", (200, 0, 200)),
     ("SUEP_phi_SR", "ak15Phi", (100, -6.5, 6.5)),
-    ("SUEP_S1_SR", "boostedSphericity", (50, 0, 1)),
+    ("SUEP_S1_SR", "boostedSphericity", (100, 0, 1)),
     ("W_phi_SR", "wPhi", (60, -3.2, 3.2)),
     ("W_pt_SR", "wPt", (200, 0, 2000)),
 ]
