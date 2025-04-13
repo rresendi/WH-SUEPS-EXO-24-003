@@ -431,7 +431,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     }
     else if (selection == "tight")
     {
-      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, "WP80"))
+      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP80"))
         continue;
       else
       {
