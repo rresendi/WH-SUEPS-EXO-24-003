@@ -353,7 +353,12 @@ vector<RecLeptonFormat> filter_muons(const vector<RecLeptonFormat> &objects,
     // Iso selection: If loose, use nominal Delphes output. If tight, calculate on the fly
     if (selection == "loose")
     {
-      filtered.push_back(obj);
+      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "pfIso2"))
+        continue;
+      else
+      {
+        filtered.push_back(obj);
+      }
     }
     else if (selection == "tight")
     {
@@ -427,7 +432,12 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     // Iso selection: If loose, use nominal Delphes output. If tight, calculate on the fly
     if (selection == "loose")
     {
-      filtered.push_back(obj);
+      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP90"))
+        continue;
+      else
+      {
+        filtered.push_back(obj);
+      }
     }
     else if (selection == "tight")
     {
