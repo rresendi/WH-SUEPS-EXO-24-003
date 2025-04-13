@@ -1008,7 +1008,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // Require Ak4 and Ak15 Overlap
-  bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 0.4);
+  bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 1.5);
   if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap"))
     return true;
 
