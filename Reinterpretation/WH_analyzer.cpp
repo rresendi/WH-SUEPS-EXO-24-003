@@ -711,38 +711,38 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
   Manager()->AddHisto("wPhi", 60, -3.2, 3.2);
 
   // Lepton Histograms
-  Manager()->AddHisto("lepPt", 300, 0, 300);
+  Manager()->AddHisto("lepPt", 1000, 0, 1000);
   Manager()->AddHisto("lepEta", 100, -5.0, 5.0);
   Manager()->AddHisto("lepPhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseLep", 10, 0, 10);
   Manager()->AddHisto("tightLep", 10, 0, 10);
 
   // Muon Histograms
-  Manager()->AddHisto("muPt", 300, 0, 300);
+  Manager()->AddHisto("muPt", 500, 0, 500);
   Manager()->AddHisto("muEta", 100, -5.0, 5.0);
   Manager()->AddHisto("muPhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseMu", 10, 0, 10);
   Manager()->AddHisto("tightMu", 10, 0, 10);
 
   // Electron Histograms
-  Manager()->AddHisto("elePt", 300, 0, 300);
+  Manager()->AddHisto("elePt", 500, 0, 500);
   Manager()->AddHisto("eleEta", 100, -5.0, 5.0);
   Manager()->AddHisto("elePhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseEle", 10, 0, 10);
   Manager()->AddHisto("tightEle", 10, 0, 10);
 
   // Ak4 Histograms
-  Manager()->AddHisto("NJets", 10, 0.0, 10.0);
+  Manager()->AddHisto("NJets", 20, 0.0, 20.0);
   Manager()->AddHisto("ak4Pt", 300, 0, 300);
   Manager()->AddHisto("ak4Eta", 100, -5.0, 5.0);
   Manager()->AddHisto("ak4Phi", 60, -3.2, 3.2);
   Manager()->AddHisto("ak4NTracks", 100, 0.0, 100.0);
 
   // Ak15 Histograms
-  Manager()->AddHisto("ak15Pt", 300, 0, 300);
+  Manager()->AddHisto("ak15Pt", 100, 0, 1000);
   Manager()->AddHisto("ak15Eta", 100, -5.0, 5.0);
   Manager()->AddHisto("ak15Phi", 100, -6.5, 6.5);
-  Manager()->AddHisto("ak15NTracks", 100, 0.0, 100.0);
+  Manager()->AddHisto("ak15NTracks", 200, 0.0, 200.0);
   Manager()->AddHisto("ak15Mass", 150, 0, 2000);
 
   // Sphericity Histograms
