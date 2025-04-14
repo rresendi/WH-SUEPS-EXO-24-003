@@ -21,9 +21,6 @@ set ExecutionPath {
   Calorimeter
   EFlowMerger
   EFlowFilter
-  
-  PhotonEfficiency
-  PhotonIsolation
 
   ElectronFilter
   ElectronEfficiency
@@ -35,18 +32,7 @@ set ExecutionPath {
   MissingET
 
   NeutrinoFilter
-  GenJetFinder
   GenMissingET
-  
-  FastJetFinder
-  FatJetFinder
-
-  JetEnergyScale
-
-  JetFlavorAssociation
-
-  BTagging
-  TauTagging
 
   UniqueObjectFinder
 
@@ -448,42 +434,6 @@ module PdgCodeFilter EFlowFilter {
   add PdgCode {-13}
 }
 
-
-###################
-# Photon efficiency
-###################
-
-module Efficiency PhotonEfficiency {
-  set InputArray ECal/eflowPhotons
-  set OutputArray photons
-
-  # set EfficiencyFormula {efficiency formula as a function of eta and pt}
-
-  # efficiency formula for photons
-  set EfficiencyFormula {                                      (pt <= 10.0) * (0.00) +
-                                           (abs(eta) <= 1.5) * (pt > 10.0)  * (0.95) +
-                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 10.0)  * (0.85) +
-                         (abs(eta) > 2.5)                                   * (0.00)}
-}
-
-##################
-# Photon isolation
-##################
-
-module Isolation PhotonIsolation {
-  set CandidateInputArray PhotonEfficiency/photons
-  set IsolationInputArray EFlowFilter/eflow
-
-  set OutputArray photons
-
-  set DeltaRMax 0.5
-
-  set PTMin 0.5
-
-  set PTRatioMax 0.12
-}
-
-
 #####################
 # Electron efficiency
 #####################
@@ -500,23 +450,6 @@ module Efficiency ElectronEfficiency {
                          (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 10.0)  * (0.85) +
                          (abs(eta) > 2.5)                                   * (0.00)}
 }
-
-####################
-# Electron isolation
-####################
-
-#module Isolation ElectronIsolation {
-#  set CandidateInputArray ElectronEfficiency/electrons
-#  set IsolationInputArray EFlowFilter/eflow
-#
-#  set OutputArray electrons
-#
-#  set DeltaRMax 0.5
-#
-#  set PTMin 0.5
-#
-#  set PTRatioMax 0.12
-#}
 
 #################
 # Muon efficiency
@@ -535,23 +468,6 @@ module Efficiency MuonEfficiency {
                          (abs(eta) > 2.4)                                                 * (0.00)}
 }
 
-################
-# Muon isolation
-################
-
-#module Isolation MuonIsolation {
-#  set CandidateInputArray MuonEfficiency/muons
-#  set IsolationInputArray EFlowFilter/eflow
-#
-#  set OutputArray muons
-#
-#  set DeltaRMax 0.5
-#
-#  set PTMin 0.5
-#
-#  set PTRatioMax 0.25
-#}
-
 ###################
 # Missing ET merger
 ###################
@@ -561,20 +477,6 @@ module Merger MissingET {
   add InputArray EFlowMerger/eflow
   set MomentumOutputArray momentum
 }
-
-##################
-# Scalar HT merger
-##################
-
-module Merger ScalarHT {
-# add InputArray InputArray
-  add InputArray UniqueObjectFinder/jets
-  add InputArray UniqueObjectFinder/electrons
-  add InputArray UniqueObjectFinder/photons
-  add InputArray UniqueObjectFinder/muons
-  set EnergyOutputArray energy
-}
-
 
 #####################
 # Neutrino Filter
@@ -596,23 +498,6 @@ module PdgCodeFilter NeutrinoFilter {
 
 }
 
-
-#####################
-# MC truth jet finder
-#####################
-
-module FastJetFinder GenJetFinder {
-  set InputArray NeutrinoFilter/filteredParticles
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.5
-
-  set JetPTMin 20.0
-}
-
 #########################
 # Gen Missing ET merger
 ########################
@@ -623,139 +508,6 @@ module Merger GenMissingET {
   set MomentumOutputArray momentum
 }
 
-
-
-############
-# Jet finder
-############
-
-module FastJetFinder FastJetFinder {
-#  set InputArray Calorimeter/towers
-  set InputArray EFlowMerger/eflow
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.5
-
-  set JetPTMin 20.0
-}
-
-##################
-# Fat Jet finder
-##################
-
-module FastJetFinder FatJetFinder {
-  set InputArray EFlowMerger/eflow
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.8
-
-  set ComputeNsubjettiness 1
-  set Beta 1.0
-  set AxisMode 4
-
-  set ComputeTrimming 1
-  set RTrim 0.2
-  set PtFracTrim 0.05
-
-  set ComputePruning 1
-  set ZcutPrun 0.1
-  set RcutPrun 0.5
-  set RPrun 0.8
-
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 0.8
-
-  set JetPTMin 200.0
-}
-
-
-
-
-##################
-# Jet Energy Scale
-##################
-
-module EnergyScale JetEnergyScale {
-  set InputArray FastJetFinder/jets
-  set OutputArray jets
-
-  # scale formula for jets
-  set ScaleFormula {sqrt( (2.5 - 0.15*(abs(eta)))^2 / pt + 1.0 )}
-}
-
-########################
-# Jet Flavor Association
-########################
-
-module JetFlavorAssociation JetFlavorAssociation {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray JetEnergyScale/jets
-
-  set DeltaR 0.5
-  set PartonPTMin 1.0
-  set PartonEtaMax 2.5
-
-}
-
-###########
-# b-tagging
-###########
-
-module BTagging BTagging {
-  set JetInputArray JetEnergyScale/jets
-
-  set BitNumber 0
-
-  # add EfficiencyFormula {abs(PDG code)} {efficiency formula as a function of eta and pt}
-  # PDG code = the highest PDG code of a quark or gluon inside DeltaR cone around jet axis
-  # gluon's PDG code has the lowest priority
-
-  # based on arXiv:1211.4462
-  
-  # default efficiency formula (misidentification rate)
-  add EfficiencyFormula {0} {0.01+0.000038*pt}
-
-  # efficiency formula for c-jets (misidentification rate)
-  add EfficiencyFormula {4} {0.25*tanh(0.018*pt)*(1/(1+ 0.0013*pt))}
-
-  # efficiency formula for b-jets
-  add EfficiencyFormula {5} {0.85*tanh(0.0025*pt)*(25.0/(1+0.063*pt))}
-}
-
-#############
-# tau-tagging
-#############
-
-module TauTagging TauTagging {
-  set ParticleInputArray Delphes/allParticles
-  set PartonInputArray Delphes/partons
-  set JetInputArray JetEnergyScale/jets
-
-  set DeltaR 0.5
-
-  set TauPTMin 1.0
-
-  set TauEtaMax 2.5
-
-  # add EfficiencyFormula {abs(PDG code)} {efficiency formula as a function of eta and pt}
-
-  # default efficiency formula (misidentification rate)
-  add EfficiencyFormula {0} {0.01}
-  # efficiency formula for tau-jets
-  add EfficiencyFormula {15} {0.6}
-}
-
 #####################################################
 # Find uniquely identified photons/electrons/tau/jets
 #####################################################
@@ -763,10 +515,8 @@ module TauTagging TauTagging {
 module UniqueObjectFinder UniqueObjectFinder {
 # earlier arrays take precedence over later ones
 # add InputArray InputArray OutputArray
-  add InputArray PhotonIsolation/photons photons
   add InputArray ElectronEfficiency/electrons electrons
   add InputArray MuonEfficiency/muons muons
-  add InputArray JetEnergyScale/jets jets
 }
 
 ##################
@@ -788,16 +538,10 @@ module TreeWriter TreeWriter {
   add Branch ECal/eflowPhotons EFlowPhoton Tower
   add Branch HCal/eflowNeutralHadrons EFlowNeutralHadron Tower
 
-  add Branch GenJetFinder/jets GenJet Jet
   add Branch GenMissingET/momentum GenMissingET MissingET
  
-  add Branch UniqueObjectFinder/jets Jet Jet
   add Branch UniqueObjectFinder/electrons Electron Electron
-  add Branch UniqueObjectFinder/photons Photon Photon
   add Branch UniqueObjectFinder/muons Muon Muon
 
-  add Branch FatJetFinder/jets FatJet Jet
-
   add Branch MissingET/momentum MissingET MissingET
-  add Branch ScalarHT/energy ScalarHT ScalarHT
 }
