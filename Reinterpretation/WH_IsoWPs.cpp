@@ -3,11 +3,12 @@ using namespace MA5;
 using namespace std;
 
 bool iso(const RecLeptonFormat &lepton,
-         const std::vector<RecTrackFormat> &tracks,
+         const std::vector<RecTrackFormat> &eflowTracks,
          const std::vector<RecParticleFormat> &eflowPhotons,
          const std::vector<RecParticleFormat> &eflowNeutralHadrons,
          double iso_minpt,
          double deltaRmax,
+         double deltaRmin,
          std::string iso = "")
 {
 
@@ -33,23 +34,12 @@ bool iso(const RecLeptonFormat &lepton,
 
     double lep_pt = lepton.pt();
     double totalpt = 0.0;
-
-    for (const auto &track : tracks)
+    for (const auto &track : eflowTracks)
     {
         double dr = lepton.dr(track);
         double pt = track.pt();
-        // int pdgid = std::abs(track.pdgid()); // Bug in MadAnalysis before we can use this
-        if (dr < 0.001)
-        {
-            continue;
-        }
 
-        // if (pdgid == 11 || pdgid == 13)
-        //{
-        //     continue;
-        // }
-
-        if (dr < deltaRmax && pt > iso_minpt)
+        if (dr < deltaRmax && dr > deltaRmin && pt > iso_minpt)
         {
             totalpt += pt;
         }
@@ -59,7 +49,7 @@ bool iso(const RecLeptonFormat &lepton,
     {
         double dr = lepton.dr(photon);
         double pt = photon.pt();
-        if (dr < deltaRmax && pt > iso_minpt)
+        if (dr < deltaRmax && dr > deltaRmin && pt > iso_minpt)
         {
             totalpt += pt;
         }
@@ -69,13 +59,18 @@ bool iso(const RecLeptonFormat &lepton,
     {
         double dr = lepton.dr(neutral);
         double pt = neutral.pt();
-        if (dr < deltaRmax && pt > iso_minpt)
+        if (dr < 0.01)
+        {
+            continue;
+        }
+        if (dr < deltaRmax && dr > deltaRmin && pt > iso_minpt)
         {
             totalpt += pt;
         }
     }
 
     double pt_ratio = totalpt / lep_pt;
+
     return (pt_ratio <= ratiomax);
 }
 
@@ -85,8 +80,9 @@ vector<RecLeptonFormat> filter_muons(const vector<RecLeptonFormat> &objects,
                                      float etamax,
                                      float iso_pTMin,
                                      float iso_dRMax,
+                                     float iso_dRMin,
                                      bool noIso,
-                                     const vector<RecTrackFormat> &tracks,
+                                     const vector<RecTrackFormat> &eflowTracks,
                                      const vector<RecParticleFormat> &eflowPhotons,
                                      const vector<RecParticleFormat> &eflowNeutralHadrons,
                                      const string &selection)
@@ -111,7 +107,7 @@ vector<RecLeptonFormat> filter_muons(const vector<RecLeptonFormat> &objects,
             filtered.push_back(obj);
             continue;
         }
-        if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
+        if (!iso(obj, eflowTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, selection))
         {
             continue;
         }
@@ -127,8 +123,9 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
                                          float etamax,
                                          float iso_pTMin,
                                          float iso_dRMax,
+                                         float iso_dRMin,
                                          bool noIso,
-                                         const vector<RecTrackFormat> &tracks,
+                                         const vector<RecTrackFormat> &eflowTracks,
                                          const vector<RecParticleFormat> &eflowPhotons,
                                          const vector<RecParticleFormat> &eflowNeutralHadrons,
                                          const string &selection)
@@ -157,7 +154,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
             filtered.push_back(obj);
             continue;
         }
-        if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, selection))
+        if (!iso(obj, eflowTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, selection))
         {
             continue;
         }
@@ -225,7 +222,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     // DEFINING OBJECT CUTS
 
     // Isolation Eflow Collections
-    std::vector<RecTrackFormat> tracks = event.rec()->tracks();
+    std::vector<RecTrackFormat> eflowTracks = event.rec()->EFlowTracks();
     std::vector<RecParticleFormat> eflowPhotons = event.rec()->EFlowPhotons();
     std::vector<RecParticleFormat> eflowNeutralHadrons = event.rec()->EFlowNeutralHadrons();
 
@@ -237,6 +234,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     float const ELECTRON_ETA_MAX = 0.8;
     float const ELECTRON_ISO_PT_MIN = 0.5;
     float const ELECTRON_ISO_DR_MAX = 0.3;
+    float const ELECTRON_ISO_DR_MIN = 0.01;
 
     // MUONS https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonSelection#Particle_Flow_isolation
     // Mystery???? Try to just use the same pt/eta of the electrons
@@ -245,25 +243,26 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     float const MUON_ETA_MAX = 0.8;
     float const MUON_ISO_PT_MIN = 0.1;
     float const MUON_ISO_DR_MAX = 0.4;
+    float const MUON_ISO_DR_MIN = 0.01;
 
     //////////////////////////////////////////////
     //  Applying Base Lepton Object Selections  //
     //////////////////////////////////////////////
 
     // Electron Collections
-    vector<RecLeptonFormat> electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, true, tracks, eflowPhotons, eflowNeutralHadrons, "WP90");
+    vector<RecLeptonFormat> electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, true, eflowTracks, eflowPhotons, eflowNeutralHadrons, "WP90");
 
-    vector<RecLeptonFormat> WP90_electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, false, tracks, eflowPhotons, eflowNeutralHadrons, "WP90");
+    vector<RecLeptonFormat> WP90_electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, false, eflowTracks, eflowPhotons, eflowNeutralHadrons, "WP90");
 
-    vector<RecLeptonFormat> WP80_electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, false, tracks, eflowPhotons, eflowNeutralHadrons, "WP80");
+    vector<RecLeptonFormat> WP80_electrons = filter_electrons(event.rec()->electrons(), ELECTRON_PT_MIN, ELECTRON_ETA_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, false, eflowTracks, eflowPhotons, eflowNeutralHadrons, "WP80");
 
     // Muon Collections
 
-    vector<RecLeptonFormat> muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, true, tracks, eflowPhotons, eflowNeutralHadrons, "pfIso2");
+    vector<RecLeptonFormat> muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, true, eflowTracks, eflowPhotons, eflowNeutralHadrons, "pfIso2");
 
-    vector<RecLeptonFormat> looseWP_muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, false, tracks, eflowPhotons, eflowNeutralHadrons, "pfIso2");
+    vector<RecLeptonFormat> looseWP_muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, false, eflowTracks, eflowPhotons, eflowNeutralHadrons, "pfIso2");
 
-    vector<RecLeptonFormat> vTightWP_muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, false, tracks, eflowPhotons, eflowNeutralHadrons, "pfIso5");
+    vector<RecLeptonFormat> vTightWP_muons = filter_muons(event.rec()->muons(), MUON_PT_MIN, MUON_ETA_MIN, MUON_ETA_MAX, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, false, eflowTracks, eflowPhotons, eflowNeutralHadrons, "pfIso5");
 
     if (not Manager()->ApplyCut(true, "dummy"))
         return true;
