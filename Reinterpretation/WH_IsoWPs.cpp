@@ -17,19 +17,19 @@ bool iso(const RecLeptonFormat &lepton,
     // to be played with
     if (iso == "WP90")
     {
-        ratiomax = 0.12;
+        ratiomax = 0.005;
     }
     else if (iso == "WP80")
     {
-        ratiomax = 0.10;
+        ratiomax = 0.001;
     }
     else if (iso == "pfIso2")
     {
-        ratiomax = 0.25;
+        ratiomax = 0.08;
     }
     else if (iso == "pfIso5")
     {
-        ratiomax = 0.2;
+        ratiomax = 0.009;
     }
 
     double lep_pt = lepton.pt();
