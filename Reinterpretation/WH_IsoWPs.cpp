@@ -185,14 +185,14 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
     // ===== Histograms ===== //
 
     // Muon Histograms
-    Manager()->AddHisto("Mu", 10, 0, 10);
-    Manager()->AddHisto("looseMu", 10, 0, 10);
-    Manager()->AddHisto("vTightMu", 10, 0, 10);
+    Manager()->AddHisto("Mu", 50, 0, 50);
+    Manager()->AddHisto("looseMu", 50, 0, 50);
+    Manager()->AddHisto("vTightMu", 50, 0, 50);
 
     // Electron Histograms
-    Manager()->AddHisto("Ele", 10, 0, 10);
-    Manager()->AddHisto("WP90Ele", 10, 0, 10);
-    Manager()->AddHisto("WP80Ele", 10, 0, 10);
+    Manager()->AddHisto("Ele", 50, 0, 50);
+    Manager()->AddHisto("WP90Ele", 50, 0, 50);
+    Manager()->AddHisto("WP80Ele", 50, 0, 50);
 
     // everything runs smoothly //
     return true;
