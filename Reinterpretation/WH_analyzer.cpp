@@ -4,84 +4,61 @@ using namespace std;
 #include <cstdlib>
 #include <Eigen/Dense>
 
+template <typename T>
+T normalizePhi(T phi)
+{
+  while (phi > T(M_PI))
+    phi -= T(2 * M_PI);
+  while (phi <= -T(M_PI))
+    phi += T(2 * M_PI);
+  return phi;
+}
+
+template <typename T, typename U>
+T computeDeltaPhi(T phi1, U phi2)
+{
+  phi1 = normalizePhi(phi1);
+  phi2 = normalizePhi(phi2);
+  T dphi = phi1 - phi2;
+  while (dphi > T(M_PI))
+    dphi -= T(2 * M_PI);
+  while (dphi <= -T(M_PI))
+    dphi += T(2 * M_PI);
+  return dphi;
+}
+
 template <typename T, typename U>
 double calculateDeltaR(const T &obj1, const U &obj2)
 {
-  auto normalizePhi = [](double phi) -> double
-  {
-    while (phi > M_PI)
-      phi -= 2 * M_PI;
-    while (phi < -M_PI)
-      phi += 2 * M_PI;
-    return phi;
-  };
-
   double eta1 = obj1.eta();
   double eta2 = obj2.eta();
 
-  double phi1 = normalizePhi(obj1.phi());
-  double phi2 = normalizePhi(obj2.phi());
-
-  double dphi = std::fabs(phi1 - phi2);
-  if (dphi > M_PI)
-    dphi = 2 * M_PI - dphi;
+  double dphi = std::fabs(computeDeltaPhi(obj1.phi(), obj2.phi()));
   double deta = eta1 - eta2;
 
   return std::sqrt(deta * deta + dphi * dphi);
 }
 
+// Updated dPhiCut function that uses computeDeltaPhi
 template <typename T, typename U>
 bool dPhiCut(const T &obj1, const U &obj2, float minDphi)
 {
-  auto normalizePhi = [](float phi) -> float
-  {
-    while (phi > M_PI)
-      phi -= 2 * M_PI;
-    while (phi < -M_PI)
-      phi += 2 * M_PI;
-    return phi;
-  };
-
-  float phi1 = normalizePhi(obj1.phi());
-  float phi2 = normalizePhi(obj2.phi());
-
-  float dphi = phi1 - phi2;
-  while (dphi > M_PI)
-    dphi -= 2 * M_PI;
-  while (dphi < -M_PI)
-    dphi += 2 * M_PI;
-
+  float dphi = computeDeltaPhi(obj1.phi(), obj2.phi());
   return std::fabs(dphi) > minDphi;
 }
 
+// Updated dPhi_Ak4_MET function that uses computeDeltaPhi
 template <typename T, typename U>
 double dPhi_Ak4_MET(const T &met, const std::vector<U> &ak4jets)
 {
   std::vector<double> dPhiValues;
-  auto normalizePhi = [](float phi) -> float
-  {
-    while (phi > M_PI)
-      phi -= 2 * M_PI;
-    while (phi < -M_PI)
-      phi += 2 * M_PI;
-    return phi;
-  };
   for (const auto &jet : ak4jets)
   {
-    float phi1 = normalizePhi(met.phi());
-    float phi2 = normalizePhi(jet.phi());
-
-    float dphi = phi1 - phi2;
-    while (dphi > M_PI)
-      dphi -= 2 * M_PI;
-    while (dphi < -M_PI)
-      dphi += 2 * M_PI;
-
+    float dphi = computeDeltaPhi(met.phi(), jet.phi());
     dPhiValues.push_back(std::fabs(dphi));
   }
   std::sort(dPhiValues.begin(), dPhiValues.end());
-  double minDphiValue = dPhiValues.empty() ? -1.0 : dPhiValues.front();
-  std::cout << "Min dphi value in event: " << minDphiValue << std::endl;
+  double minDphiValue = dPhiValues.front();
 
   return minDphiValue;
 }
@@ -258,7 +235,7 @@ double sphericity(const std::vector<fastjet::PseudoJet> &particles, double r)
 }
 
 bool iso(const RecLeptonFormat &lepton,
-         const std::vector<RecTrackFormat> &eflowTracks,
+         const std::vector<RecTrackFormat> &trackerTracks,
          const std::vector<RecParticleFormat> &eflowPhotons,
          const std::vector<RecParticleFormat> &eflowNeutralHadrons,
          double iso_minpt,
@@ -289,11 +266,16 @@ bool iso(const RecLeptonFormat &lepton,
 
   double lep_pt = lepton.pt();
   double totalpt = 0.0;
-  for (const auto &track : eflowTracks)
+  for (const auto &track : trackerTracks)
   {
     double dr = lepton.dr(track);
     double pt = track.pt();
+    double pdgid = fabs(track.pdgid());
 
+    if (pdgid == 11 or pdgid == 13)
+    {
+      continue;
+    }
     if (dr < deltaRmax && dr > deltaRmin && pt > iso_minpt)
     {
       totalpt += pt;
@@ -834,6 +816,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
 
   // Isolation Eflow Collections
   std::vector<RecTrackFormat> eflowTracks = event.rec()->EFlowTracks();
+  std::vector<RecTrackFormat> trackerTracks = event.rec()->tracks();
   std::vector<RecParticleFormat> eflowPhotons = event.rec()->EFlowPhotons();
   std::vector<RecParticleFormat> eflowNeutralHadrons = event.rec()->EFlowNeutralHadrons();
 
@@ -866,22 +849,22 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   //////////////////////////////////////////////
 
   // Electron Collections
-  vector<RecLeptonFormat> loose_electrons = filter_electrons(event.rec()->electrons(), LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose");
-  vector<RecLeptonFormat> loose_posElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
-  vector<RecLeptonFormat> loose_negElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
+  vector<RecLeptonFormat> loose_electrons = filter_electrons(event.rec()->electrons(), LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+  vector<RecLeptonFormat> loose_posElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
+  vector<RecLeptonFormat> loose_negElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
 
-  vector<RecLeptonFormat> tight_electrons = filter_electrons(loose_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight");
-  vector<RecLeptonFormat> tight_posElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
-  vector<RecLeptonFormat> tight_negElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+  vector<RecLeptonFormat> tight_electrons = filter_electrons(loose_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+  vector<RecLeptonFormat> tight_posElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+  vector<RecLeptonFormat> tight_negElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
 
   // Muon Collections
-  vector<RecLeptonFormat> loose_muons = filter_muons(event.rec()->muons(), LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose");
-  vector<RecLeptonFormat> loose_posMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
-  vector<RecLeptonFormat> loose_negMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
+  vector<RecLeptonFormat> loose_muons = filter_muons(event.rec()->muons(), LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+  vector<RecLeptonFormat> loose_posMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
+  vector<RecLeptonFormat> loose_negMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
 
-  vector<RecLeptonFormat> tight_muons = filter_muons(loose_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight");
-  vector<RecLeptonFormat> tight_posMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
-  vector<RecLeptonFormat> tight_negMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, eflowTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+  vector<RecLeptonFormat> tight_muons = filter_muons(loose_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+  vector<RecLeptonFormat> tight_posMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+  vector<RecLeptonFormat> tight_negMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
 
   // Combining loose Leptons
   vector<RecLeptonFormat> loose_leptons = loose_electrons;
@@ -1039,8 +1022,21 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   if (not Manager()->ApplyCut(dPhi_Lep_SUEP, "dPhi_Lep_SUEP"))
     return true;
 
-  // Require Ak4 and Ak15 Overlap
-  bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 1.5);
+  // Require Ak4 and Ak15 Overlap - ZH WAY
+  // bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 1.5);
+  // if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap"))
+  //  return true;
+
+  // Require at least one Ak4 jet to overlap with Ak15 - WH WAY
+  bool Ak4_Ak15_Overlap = false;
+  for (const auto &ak4 : Ak4jets)
+  {
+    if (calculateDeltaR(ak4, Ak15Jets.at(0)) < 1.5)
+    {
+      Ak4_Ak15_Overlap = true;
+      break;
+    }
+  }
   if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap"))
     return true;
 
@@ -1050,9 +1046,8 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // dPhi(MET, Ak4)
-  double dPhi_MET_Ak4 = dPhi_Ak4_MET(event.rec()->MET(), Ak4jets);
-  bool dPhi_MET_Ak4_cut = dPhi_MET_Ak4 > 1.5;
-  if (not Manager()->ApplyCut(dPhi_MET_Ak4_cut, "dPhi_MET_Ak4_cut"))
+  bool dPhi_MET_Ak4 = dPhi_Ak4_MET(event.rec()->MET(), Ak4jets) > 1.5;
+  if (not Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4"))
     return true;
 
   //////////////////////////////////////////////
@@ -1099,24 +1094,14 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   Manager()->FillHisto("NJets", Ak4jets.size());
   Manager()->FillHisto("ak4Pt", Ak4jets.at(0).pt());
   Manager()->FillHisto("ak4Eta", Ak4jets.at(0).eta());
-  double phi_mapped_Ak4 = Ak4jets.at(0).phi();
-  if (phi_mapped_Ak4 > M_PI)
-  {
-    phi_mapped_Ak4 -= 2 * M_PI;
-  }
-  Manager()->FillHisto("ak4Phi", phi_mapped_Ak4);
+  Manager()->FillHisto("ak4Phi", normalizePhi(Ak4jets.at(0).phi()));
   Manager()->FillHisto("ak4NTracks", Ak4jetConstituents.at(0).size());
 
   // Ak15 Histograms
   Manager()->FillHisto("ak15Pt", Ak15Jets.at(0).pt());
   Manager()->FillHisto("ak15NTracks", Ak15jetConstituents.at(0).size());
   Manager()->FillHisto("ak15Eta", Ak15Jets.at(0).eta());
-  double phi_mapped = Ak15Jets.at(0).phi();
-  if (phi_mapped > M_PI)
-  {
-    phi_mapped -= 2 * M_PI;
-  }
-  Manager()->FillHisto("ak15Phi", phi_mapped);
+  Manager()->FillHisto("ak15Phi", normalizePhi(Ak15Jets.at(0).phi()));
   Manager()->FillHisto("ak15Mass", Ak15Jets.at(0).m());
 
   // MET Histograms
