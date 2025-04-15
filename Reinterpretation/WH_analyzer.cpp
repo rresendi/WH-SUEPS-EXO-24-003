@@ -54,6 +54,38 @@ bool dPhiCut(const T &obj1, const U &obj2, float minDphi)
   return std::fabs(dphi) > minDphi;
 }
 
+template <typename T, typename U>
+double dPhi_Ak4_MET(const T &met, const std::vector<U> &ak4jets)
+{
+  std::vector<double> dPhiValues;
+  auto normalizePhi = [](float phi) -> float
+  {
+    while (phi > M_PI)
+      phi -= 2 * M_PI;
+    while (phi < -M_PI)
+      phi += 2 * M_PI;
+    return phi;
+  };
+  for (const auto &jet : ak4jets)
+  {
+    float phi1 = normalizePhi(met.phi());
+    float phi2 = normalizePhi(jet.phi());
+
+    float dphi = phi1 - phi2;
+    while (dphi > M_PI)
+      dphi -= 2 * M_PI;
+    while (dphi < -M_PI)
+      dphi += 2 * M_PI;
+
+    dPhiValues.push_back(std::fabs(dphi));
+  }
+  std::sort(dPhiValues.begin(), dPhiValues.end());
+  double minDphiValue = dPhiValues.empty() ? -1.0 : dPhiValues.front();
+  std::cout << "Min dphi value in event: " << minDphiValue << std::endl;
+
+  return minDphiValue;
+}
+
 // Returns the mass (in GeV) for a charged particle based on its PDG id
 // Common charged leptons, mesons, and baryons are included
 // If the PDG id is not recognized, defaults to the charged pion mass
@@ -1018,8 +1050,9 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // dPhi(MET, Ak4)
-  bool dPhi_MET_Ak4 = dPhiCut(event.rec()->MET(), Ak4jets.at(0), MIN_DPHI);
-  if (not Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4"))
+  double dPhi_MET_Ak4 = dPhi_Ak4_MET(event.rec()->MET(), Ak4jets);
+  bool dPhi_MET_Ak4_cut = dPhi_MET_Ak4 > 1.5;
+  if (not Manager()->ApplyCut(dPhi_MET_Ak4_cut, "dPhi_MET_Ak4_cut"))
     return true;
 
   //////////////////////////////////////////////
