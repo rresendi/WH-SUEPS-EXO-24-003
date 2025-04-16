@@ -764,8 +764,8 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
   Manager()->AddHisto("boostedSphericity", 100, 0.0, 1.0);
 
   // MET Histograms
-  Manager()->AddHisto("metPt", 300, 0, 300);
-  Manager()->AddHisto("metPhi", 60, -3.2, 3.2);
+  Manager()->AddHisto("metPt", 200, 0, 1000);
+  Manager()->AddHisto("metPhi", 100, -3.0, 3.0);
   Manager()->AddHisto("metEta", 100, -5.0, 5.0);
 
   // ABCD Histograms
