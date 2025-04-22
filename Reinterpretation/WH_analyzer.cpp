@@ -245,15 +245,25 @@ bool iso(const RecLeptonFormat &lepton,
 {
 
   double ratiomax = 0.0;
+  double abs_eta = std::fabs(lepton.eta());
 
-  // to be played with
   if (iso == "WP90")
   {
-    ratiomax = 0.12;
+    if (abs_eta < 0.8)
+      ratiomax = 0.23;
+    else if (abs_eta < 1.44)
+      ratiomax = 0.25;
+    else // abs_eta >= 1.57
+      ratiomax = 0.25;
   }
   else if (iso == "WP80")
   {
-    ratiomax = 0.10;
+    if (abs_eta < 0.8)
+      ratiomax = 0.09;
+    else if (abs_eta < 1.44)
+      ratiomax = 0.09;
+    else // abs_eta >= 1.57
+      ratiomax = 0.105;
   }
   else if (iso == "pfIso2")
   {
@@ -261,7 +271,7 @@ bool iso(const RecLeptonFormat &lepton,
   }
   else if (iso == "pfIso5")
   {
-    ratiomax = 0.2;
+    ratiomax = 0.1;
   }
 
   double lep_pt = lepton.pt();

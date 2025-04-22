@@ -168,6 +168,7 @@ def plot_2d_slices(saf_content, root_file, outdir, norm_factor, root_norm_factor
         unc    = np.sqrt(raw2d)/gensumweight*root_norm_factor
         root_counts.append(scaled)
         root_unc.append(unc)
+        
         # SAF summation using readSAFFile
         saf_vals = readSAFFile(saf_content,name)
         raw1d    = np.sum(saf_vals)
