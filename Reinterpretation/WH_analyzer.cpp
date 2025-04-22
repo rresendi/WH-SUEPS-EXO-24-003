@@ -719,28 +719,27 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
   // ===== Histograms ===== //
 
   // W Histograms
-  Manager()->AddHisto("wMass", 60, 0.0, 140.0);
-  Manager()->AddHisto("wPt", 200, 0, 2000);
-  Manager()->AddHisto("wEta", 100, -5.0, 5.0);
+  Manager()->AddHisto("wTransverseMass", 100, 30.0, 130.0);
+  Manager()->AddHisto("wPt", 94, 60, 1000);
   Manager()->AddHisto("wPhi", 60, -3.2, 3.2);
 
   // Lepton Histograms
-  Manager()->AddHisto("lepPt", 1000, 0, 1000);
-  Manager()->AddHisto("lepEta", 100, -5.0, 5.0);
+  Manager()->AddHisto("lepPt", 370, 30, 400);
+  Manager()->AddHisto("lepEta", 50, -2.5, 2.5);
   Manager()->AddHisto("lepPhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseLep", 10, 0, 10);
   Manager()->AddHisto("tightLep", 10, 0, 10);
 
   // Muon Histograms
-  Manager()->AddHisto("muPt", 500, 0, 500);
-  Manager()->AddHisto("muEta", 100, -5.0, 5.0);
+  Manager()->AddHisto("muPt", 370, 30, 400);
+  Manager()->AddHisto("muEta", 50, -2.5, 2.5);
   Manager()->AddHisto("muPhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseMu", 10, 0, 10);
   Manager()->AddHisto("tightMu", 10, 0, 10);
 
   // Electron Histograms
-  Manager()->AddHisto("elePt", 500, 0, 500);
-  Manager()->AddHisto("eleEta", 100, -5.0, 5.0);
+  Manager()->AddHisto("elePt", 370, 30, 400);
+  Manager()->AddHisto("eleEta", 50, -2.5, 2.5);
   Manager()->AddHisto("elePhi", 60, -3.2, 3.2);
   Manager()->AddHisto("looseEle", 10, 0, 10);
   Manager()->AddHisto("tightEle", 10, 0, 10);
@@ -753,20 +752,19 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
   Manager()->AddHisto("ak4NTracks", 100, 0.0, 100.0);
 
   // Ak15 Histograms
-  Manager()->AddHisto("ak15Pt", 100, 0, 1000);
-  Manager()->AddHisto("ak15Eta", 100, -5.0, 5.0);
-  Manager()->AddHisto("ak15Phi", 100, -6.5, 6.5);
+  Manager()->AddHisto("ak15Pt", 44, 60, 500);
+  Manager()->AddHisto("ak15Eta", 50, -2.5, 2.5);
+  Manager()->AddHisto("ak15Phi", 50, -3.25, 3.25);
   Manager()->AddHisto("ak15NTracks", 200, 0.0, 200.0);
-  Manager()->AddHisto("ak15Mass", 150, 0, 2000);
+  Manager()->AddHisto("ak15Mass", 30, 0, 400);
 
   // Sphericity Histograms
-  Manager()->AddHisto("labSphericity", 100, 0.0, 1.0);
-  Manager()->AddHisto("boostedSphericity", 100, 0.0, 1.0);
+  Manager()->AddHisto("labSphericity", 70, 0.3, 1.0);
+  Manager()->AddHisto("boostedSphericity", 70, 0.3, 1.0);
 
   // MET Histograms
-  Manager()->AddHisto("metPt", 300, 0, 300);
-  Manager()->AddHisto("metPhi", 60, -3.2, 3.2);
-  Manager()->AddHisto("metEta", 100, -5.0, 5.0);
+  Manager()->AddHisto("metPt", 94, 30, 500);
+  Manager()->AddHisto("metPhi", 100, -3, 3);
 
   // ABCD Histograms
   Manager()->AddHisto("ABCD_A", 10, 10.0, 20.0);
@@ -785,7 +783,7 @@ MAbool user::Initialize(const MA5::Configuration &cfg,
   Manager()->AddHisto("ABCD_SR1", 10, 40.0, 50.0);
   Manager()->AddHisto("ABCD_SR2", 10, 50.0, 60.0);
   Manager()->AddHisto("ABCD_SR3", 20, 60.0, 80.0);
-  Manager()->AddHisto("ABCD_SR4", 20, 120.0, 200.0);
+  Manager()->AddHisto("ABCD_SR4", 120, 80.0, 200.0);
 
   // everything runs smoothly //
   return true;
@@ -967,6 +965,12 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   recoW += tight_leptons.at(0).momentum();
   recoW += event.rec()->MET().momentum();
 
+  // Compute transverse mass: mT = sqrt(2 * pT_lep * MET * (1 - cos(dphi)))
+  double lepPt = tight_leptons.at(0).pt();
+  double metPt = event.rec()->MET().pt();
+  double dphiW = computeDeltaPhi(tight_leptons.at(0).phi(), event.rec()->MET().phi());
+  double wTransverseMass = std::sqrt(2.0 * lepPt * metPt * (1.0 - std::cos(dphiW)));
+
   // Do Ak15 clustering
   auto Ak15result = getAk15Jets(event.rec()->tracks(), tight_leptons, TRACK_PT_MIN, TRACK_ETA_MAX, TRACK_D0_MAX, TRACK_DZ_MAX, TRACK_DR_MAX);
   std::vector<fastjet::PseudoJet> Ak15Jets = Ak15result.first;
@@ -998,7 +1002,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // Require OnShell W
-  bool onShellW = (recoW.m() >= WMASS_LOW && recoW.m() <= WMASS_HIGH);
+  bool onShellW = (wTransverseMass >= WMASS_LOW && wTransverseMass <= WMASS_HIGH);
   if (!Manager()->ApplyCut(onShellW, "onShellW"))
     return true;
 
@@ -1060,9 +1064,8 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   double boostedSphericity = sphericity(boostedConstituents, 1.0);
 
   // W Histograms
-  Manager()->FillHisto("wMass", recoW.m());
+  Manager()->FillHisto("wTransverseMass", wTransverseMass);
   Manager()->FillHisto("wPt", recoW.pt());
-  Manager()->FillHisto("wEta", recoW.eta());
   Manager()->FillHisto("wPhi", recoW.phi());
 
   // Lepton Histograms
@@ -1107,7 +1110,6 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   // MET Histograms
   Manager()->FillHisto("metPt", (event.rec)()->MET().pt());
   Manager()->FillHisto("metPhi", event.rec()->MET().phi());
-  Manager()->FillHisto("metEta", event.rec()->MET().eta());
 
   // Sphericity
   Manager()->FillHisto("labSphericity", labSphericity);
