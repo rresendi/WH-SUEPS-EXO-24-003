@@ -1,8 +1,9 @@
 #include "SampleAnalyzer/User/Analyzer/user.h"
 using namespace MA5;
 using namespace std;
-#include <cstdlib>
 #include <Eigen/Dense>
+#include <random>
+#include <cmath>
 
 template <typename T>
 T normalizePhi(T phi)
@@ -404,7 +405,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
                                          float iso_pTMin,
                                          float iso_dRMax,
                                          float iso_dRMin,
-                                         const vector<RecTrackFormat> &tracks,
+                                         const vector<RecTrackFormat> &trackerTracks,
                                          const vector<RecParticleFormat> &eflowPhotons,
                                          const vector<RecParticleFormat> &eflowNeutralHadrons,
                                          const string &selection,
@@ -456,7 +457,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     // Iso selection: If loose, use nominal Delphes output. If tight, calculate on the fly
     if (selection == "loose")
     {
-      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP90"))
+      if (!iso(obj, trackerTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP90"))
         continue;
       else
       {
@@ -465,7 +466,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     }
     else if (selection == "tight")
     {
-      if (!iso(obj, tracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP80"))
+      if (!iso(obj, trackerTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP80"))
         continue;
       else
       {
@@ -548,25 +549,32 @@ void sortLeptonCollections(std::vector<RecLeptonFormat> &electrons,
   std::sort(negLeptons.begin(), negLeptons.end(), compareBypT);
 }
 
-bool BTagVeto(const std::vector<fastjet::PseudoJet> &jets)
+bool BTagVeto(const std::vector<fastjet::PseudoJet> &jets, const std::vector<double> &mistagSF)
 {
-  // Iterate over jets
-  for (const auto &jet : jets)
+  int btaggedCount = 0;
+
+  for (std::size_t i = 0; i < jets.size(); ++i)
   {
+    const auto &jet = jets[i];
     double pt = jet.pt();
-    double eff = 0.0;
+    double eff = 0.01 + 0.000038 * pt;
 
-    // Determine the mis-id rate (b-tag efficiency) using the provided piecewise function
-    eff = 0.01 + 0.000038 * pt;
+    if (i < mistagSF.size())
+    {
+      eff = std::min(1.0, eff * mistagSF[i]);
+    }
 
-    // Simulate b-tag decision via a random number.
-    // If the random number is less than the efficiency, treat jet as b-tagged.
     double rnd = static_cast<double>(rand()) / RAND_MAX;
     if (rnd < eff)
     {
-      return false;
+      btaggedCount++;
+      if (btaggedCount > 1)
+      {
+        return false;
+      }
     }
   }
+
   return true;
 }
 
@@ -613,7 +621,7 @@ getAk4jets(const std::vector<RecTrackFormat> &EFlowTracks,
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, 0.4);
   fastjet::ClusterSequence cluster_seq(input_particles, jet_def);
 
-  std::vector<fastjet::PseudoJet> inclusive_jets = sorted_by_pt(cluster_seq.inclusive_jets(10.0));
+  std::vector<fastjet::PseudoJet> inclusive_jets = sorted_by_pt(cluster_seq.inclusive_jets(15.0));
 
   std::vector<std::vector<fastjet::PseudoJet>> cluster_constituents;
   for (const auto &jet : inclusive_jets)
@@ -637,25 +645,38 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
 
   for (const auto &track : tracks)
   {
-    if (track.pt() >= pt_cut &&
-        std::abs(track.eta()) <= eta_cut &&
-        std::abs(track.d0()) < d0_cut &&
-        std::abs(track.dz()) < dz_cut &&
-        track.dr(leptons.at(0)) >= dr_cut)
-
-    // Creating the particles (constituents) which makeup our jet
-    {
-      double px = track.px();
-      double py = track.py();
-      double pz = track.pz();
-      double p2 = px * px + py * py + pz * pz;
-      double mass = getMassFromPDG(track.pdgid());
-      double E_corrected = std::sqrt(p2 + mass * mass);
-      fastjet::PseudoJet particle(px, py, pz, E_corrected); // Correcting energy of tracks to account for momentum smearing
-      input_particles.emplace_back(particle);
-    }
+    // ------------------------------------
+    // probabilistic track‑inefficiency test
+    // ------------------------------------
+    int absId = std::abs(track.pdgid());
+    double dropProb = (absId == 11 || absId == 13) ? 0.06 : 0.02;
+  
+    double rnd = static_cast<double>(rand()) / RAND_MAX;
+    if (rnd < dropProb) continue;        // skip this track
+  
+    // ------------------------------------
+    // nominal quality cuts
+    // ------------------------------------
+    if (track.pt()  <  pt_cut)              continue;
+    if (std::abs(track.eta()) > eta_cut)    continue;
+    if (std::abs(track.d0())  >= d0_cut)    continue;
+    if (std::abs(track.dz())  >= dz_cut)    continue;
+    if (track.dr(leptons.at(0)) < dr_cut)   continue;
+  
+    // ------------------------------------
+    // build the PseudoJet and store
+    // ------------------------------------
+    double px = track.px();
+    double py = track.py();
+    double pz = track.pz();
+    double p2 = px*px + py*py + pz*pz;
+    double mass = getMassFromPDG(track.pdgid());
+    double E_corrected = std::sqrt(p2 + mass*mass);
+  
+    fastjet::PseudoJet particle(px, py, pz, E_corrected);
+    input_particles.emplace_back(particle);
   }
-
+  
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, 1.5);
   fastjet::ClusterSequence cluster_seq(input_particles, jet_def);
 
@@ -819,6 +840,21 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   {
     return true;
   }
+  
+  // Copy REC MET and apply positive-only fractional smearing
+  RecParticleFormat smearedMET = event.rec()->MET();
+  double orig_pt = smearedMET.pt();
+  double phi = smearedMET.phi();
+  // Relative smearing parameters (global test smear)
+  static thread_local std::mt19937 gen(1234);
+  std::normal_distribution<double> dist_rel(0.3079, 0.6212);
+  double delta_rel = dist_rel(gen);
+  // Only apply smear if delta_rel > 0
+  double pt_smeared = (delta_rel > 0.0) ? orig_pt * (1.0 + delta_rel) : orig_pt;
+  double px_smeared = pt_smeared * std::cos(phi);
+  double py_smeared = pt_smeared * std::sin(phi);
+  double E_smeared = pt_smeared;
+  smearedMET.momentum().SetPxPyPzE(px_smeared, py_smeared, 0.0, E_smeared);
 
   // DEFINING OBJECT CUTS
 
@@ -912,7 +948,9 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   float const SECOND_MET_PT = 30;
 
   // Orthogonality to GGF offline: Remove events with no leptons
-  bool GGFOrthogonality = (loose_leptons.size() == 0);
+  bool atLeastOneEle = (loose_electrons.size() > 0) && (loose_electrons.at(0).pt() >= ORTHOG_LEAD_LEPTON_PT);
+  bool atLeastOneMu = (loose_muons.size() > 0) && (loose_muons.at(0).pt() >= ORTHOG_LEAD_LEPTON_PT);
+  bool GGFOrthogonality = (atLeastOneEle || atLeastOneMu);
 
   // Orthogonality to ZH: Remove events with a pair of loose OSSF leptons
   bool twoOSleptons = (loose_posLeptons.size() == 1 && loose_negLeptons.size() == 1);                     // Require exactly two opposite-sign leptons (either muons or electrons)
@@ -921,7 +959,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   bool ZHOrthogonality = twoOSleptons && twoSFleptons && LeadpTleptons;                                   // Concatenating cuts
 
   // Apply both orthogonality cuts
-  bool orthogonality = (!GGFOrthogonality) && (!ZHOrthogonality);
+  bool orthogonality = (GGFOrthogonality) && (!ZHOrthogonality);
   if (not Manager()->ApplyCut(orthogonality, "orthogonality"))
     return true;
 
@@ -943,7 +981,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // First MET pT Cut
-  bool firstMETCut = (event.rec()->MET().pt() > FIRST_MET_PT);
+  bool firstMETCut = (smearedMET.pt() > FIRST_MET_PT);
   if (!Manager()->ApplyCut(firstMETCut, "firstMETCut"))
     return true;
 
@@ -973,12 +1011,13 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   // W reconstruction
   ParticleBaseFormat recoW;
   recoW += tight_leptons.at(0).momentum();
-  recoW += event.rec()->MET().momentum();
+  recoW += smearedMET;
 
   // Compute transverse mass: mT = sqrt(2 * pT_lep * MET * (1 - cos(dphi)))
   double lepPt = tight_leptons.at(0).pt();
-  double metPt = event.rec()->MET().pt();
-  double dphiW = computeDeltaPhi(tight_leptons.at(0).phi(), event.rec()->MET().phi());
+  double metPt = smearedMET.pt();
+  double metPhi = smearedMET.phi();
+  double dphiW = computeDeltaPhi(tight_leptons.at(0).phi(), metPhi);
   double wTransverseMass = std::sqrt(2.0 * lepPt * metPt * (1.0 - std::cos(dphiW)));
 
   // Do Ak15 clustering
@@ -1002,7 +1041,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // Second MET pT Cut
-  bool secondMETCut = (event.rec()->MET().pt() > SECOND_MET_PT);
+  bool secondMETCut = (smearedMET.pt() > SECOND_MET_PT);
   if (!Manager()->ApplyCut(secondMETCut, "secondMETCut"))
     return true;
 
@@ -1017,7 +1056,37 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // Btag Veto
-  bool noBTag = BTagVeto(Ak4jets);
+
+  // ------------------------------------------------------------
+  // Determine soft‑lepton mistag scale factor for each AK4 jet
+  //   – use tracker tracks with |PDGID| = 11 or 13
+  // ------------------------------------------------------------
+  const double DR_MATCH_SOFTLEP = 0.4;
+  std::vector<double> Ak4jetMistagSF;
+  Ak4jetMistagSF.reserve(Ak4jets.size());
+
+  for (const auto &jet : Ak4jets)
+  {
+    double sf = 1.0;   // default: no qualifying soft lepton
+
+    for (const auto &trk : trackerTracks)
+    {
+      int absId = std::abs(trk.pdgid());
+      if (absId != 11 && absId != 13) continue;
+
+      if (calculateDeltaR(trk, jet) < DR_MATCH_SOFTLEP)
+      {
+        if ((absId == 13 || absId == 11) && trk.pt() > 5.0)
+        {
+          sf = 2.0;
+          break;                            
+        }
+      }
+    }
+    Ak4jetMistagSF.push_back(sf);
+  }
+
+  bool noBTag = BTagVeto(Ak4jets, Ak4jetMistagSF);
   if (not Manager()->ApplyCut(noBTag, "noBTag"))
     return true;
 
@@ -1027,7 +1096,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // dPhi(MET, SUEP)
-  bool dPhi_MET_SUEP = dPhiCut(event.rec()->MET(), Ak15Jets.at(0), MIN_DPHI);
+  bool dPhi_MET_SUEP = dPhiCut(smearedMET, Ak15Jets.at(0), MIN_DPHI);
   if (not Manager()->ApplyCut(dPhi_MET_SUEP, "dPhi_MET_SUEP"))
     return true;
 
@@ -1060,7 +1129,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
     return true;
 
   // dPhi(MET, Ak4)
-  bool dPhi_MET_Ak4 = dPhi_Ak4_MET(event.rec()->MET(), Ak4jets) > 1.5;
+  bool dPhi_MET_Ak4 = dPhi_Ak4_MET(smearedMET, Ak4jets) > 1.5;
   if (not Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4"))
     return true;
 
@@ -1118,8 +1187,8 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   Manager()->FillHisto("ak15Mass", Ak15Jets.at(0).m());
 
   // MET Histograms
-  Manager()->FillHisto("metPt", (event.rec)()->MET().pt());
-  Manager()->FillHisto("metPhi", event.rec()->MET().phi());
+  Manager()->FillHisto("metPt", smearedMET.pt());
+  Manager()->FillHisto("metPhi", smearedMET.phi());
 
   // Sphericity
   Manager()->FillHisto("labSphericity", labSphericity);
