@@ -5,6 +5,17 @@ using namespace std;
 #include <random>
 #include <cmath>
 
+const std::vector<std::string> regionsForHistos = {"SR", "SR_TRACKUP"};
+const std::vector<std::string> regionsForHistos_CENTRAL = {"SR"};
+const std::vector<std::string> regionsForHistos_TRACKUP = {"SR_TRACKUP"};
+
+void user::FillHistoAllRegions(const std::string &baseName, double value, const std::vector<std::string> &regions)
+{
+  for (const auto &r : regions) {
+    Manager()->FillHisto(baseName + "_" + r, value);
+  }
+}
+
 template <typename T>
 T normalizePhi(T phi)
 {
@@ -40,7 +51,6 @@ double calculateDeltaR(const T &obj1, const U &obj2)
   return std::sqrt(deta * deta + dphi * dphi);
 }
 
-// Updated dPhiCut function that uses computeDeltaPhi
 template <typename T, typename U>
 bool dPhiCut(const T &obj1, const U &obj2, float minDphi)
 {
@@ -48,7 +58,6 @@ bool dPhiCut(const T &obj1, const U &obj2, float minDphi)
   return std::fabs(dphi) > minDphi;
 }
 
-// Updated dPhi_Ak4_MET function that uses computeDeltaPhi
 template <typename T, typename U>
 double dPhi_Ak4_MET(const T &met, const std::vector<U> &ak4jets)
 {
@@ -235,8 +244,40 @@ double sphericity(const std::vector<fastjet::PseudoJet> &particles, double r)
   return sphericityval;
 }
 
+bool compareBypT(const RecLeptonFormat &a, const RecLeptonFormat &b)
+{
+  return a.pt() > b.pt(); // Sort by pT in descending order
+}
+
+// Function to sort various lepton collections by pT
+void sortLeptonCollections(std::vector<RecLeptonFormat> &electrons,
+                           std::vector<RecLeptonFormat> &posElectrons,
+                           std::vector<RecLeptonFormat> &negElectrons,
+                           std::vector<RecLeptonFormat> &muons,
+                           std::vector<RecLeptonFormat> &posMuons,
+                           std::vector<RecLeptonFormat> &negMuons,
+                           std::vector<RecLeptonFormat> &leptons,
+                           std::vector<RecLeptonFormat> &posLeptons,
+                           std::vector<RecLeptonFormat> &negLeptons)
+{
+  // Sorting electrons
+  std::sort(electrons.begin(), electrons.end(), compareBypT);
+  std::sort(posElectrons.begin(), posElectrons.end(), compareBypT);
+  std::sort(negElectrons.begin(), negElectrons.end(), compareBypT);
+
+  // Sorting muons
+  std::sort(muons.begin(), muons.end(), compareBypT);
+  std::sort(posMuons.begin(), posMuons.end(), compareBypT);
+  std::sort(negMuons.begin(), negMuons.end(), compareBypT);
+
+  // Sorting leptons
+  std::sort(leptons.begin(), leptons.end(), compareBypT);
+  std::sort(posLeptons.begin(), posLeptons.end(), compareBypT);
+  std::sort(negLeptons.begin(), negLeptons.end(), compareBypT);
+}
+
 bool iso(const RecLeptonFormat &lepton,
-         const std::vector<RecTrackFormat> &trackerTracks,
+         const std::vector<RecTrackFormat> &centralTracks,
          const std::vector<RecParticleFormat> &eflowPhotons,
          const std::vector<RecParticleFormat> &eflowNeutralHadrons,
          double iso_minpt,
@@ -277,7 +318,7 @@ bool iso(const RecLeptonFormat &lepton,
 
   double lep_pt = lepton.pt();
   double totalpt = 0.0;
-  for (const auto &track : trackerTracks)
+  for (const auto &track : centralTracks)
   {
     double dr = lepton.dr(track);
     double pt = track.pt();
@@ -405,7 +446,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
                                          float iso_pTMin,
                                          float iso_dRMax,
                                          float iso_dRMin,
-                                         const vector<RecTrackFormat> &trackerTracks,
+                                         const vector<RecTrackFormat> &centralTracks,
                                          const vector<RecParticleFormat> &eflowPhotons,
                                          const vector<RecParticleFormat> &eflowNeutralHadrons,
                                          const string &selection,
@@ -457,7 +498,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     // Iso selection: If loose, use nominal Delphes output. If tight, calculate on the fly
     if (selection == "loose")
     {
-      if (!iso(obj, trackerTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP90"))
+      if (!iso(obj, centralTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP90"))
         continue;
       else
       {
@@ -466,7 +507,7 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     }
     else if (selection == "tight")
     {
-      if (!iso(obj, trackerTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP80"))
+      if (!iso(obj, centralTracks, eflowPhotons, eflowNeutralHadrons, iso_pTMin, iso_dRMax, iso_dRMin, "WP80"))
         continue;
       else
       {
@@ -475,107 +516,6 @@ vector<RecLeptonFormat> filter_electrons(const vector<RecLeptonFormat> &objects,
     }
   }
   return filtered;
-}
-
-std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>>
-filter_Ak4jetsAndConstituents(const std::vector<fastjet::PseudoJet> &jets,
-                              const std::vector<std::vector<fastjet::PseudoJet>> &constituents,
-                              float ptmin,
-                              float etamax,
-                              float deltaRmin,
-                              const std::vector<RecLeptonFormat> &leptons)
-{
-  std::vector<fastjet::PseudoJet> filteredJets;
-  std::vector<std::vector<fastjet::PseudoJet>> filteredConstituents;
-
-  for (std::size_t i = 0; i < jets.size(); ++i)
-  {
-    const auto &jet = jets[i];
-
-    if (jet.pt() < ptmin)
-      continue;
-    if (std::fabs(jet.eta()) > etamax)
-      continue;
-
-    bool passesDeltaRCut = true;
-    for (const auto &lepton : leptons)
-    {
-      if (calculateDeltaR(lepton, jet) <= deltaRmin)
-      {
-        passesDeltaRCut = false;
-        break;
-      }
-    }
-
-    if (!passesDeltaRCut)
-      continue;
-
-    filteredJets.push_back(jet);
-    filteredConstituents.push_back(constituents[i]);
-  }
-
-  return std::make_pair(filteredJets, filteredConstituents);
-}
-
-bool compareBypT(const RecLeptonFormat &a, const RecLeptonFormat &b)
-{
-  return a.pt() > b.pt(); // Sort by pT in descending order
-}
-
-// Function to sort various lepton collections by pT
-void sortLeptonCollections(std::vector<RecLeptonFormat> &electrons,
-                           std::vector<RecLeptonFormat> &posElectrons,
-                           std::vector<RecLeptonFormat> &negElectrons,
-                           std::vector<RecLeptonFormat> &muons,
-                           std::vector<RecLeptonFormat> &posMuons,
-                           std::vector<RecLeptonFormat> &negMuons,
-                           std::vector<RecLeptonFormat> &leptons,
-                           std::vector<RecLeptonFormat> &posLeptons,
-                           std::vector<RecLeptonFormat> &negLeptons)
-{
-  // Sorting electrons
-  std::sort(electrons.begin(), electrons.end(), compareBypT);
-  std::sort(posElectrons.begin(), posElectrons.end(), compareBypT);
-  std::sort(negElectrons.begin(), negElectrons.end(), compareBypT);
-
-  // Sorting muons
-  std::sort(muons.begin(), muons.end(), compareBypT);
-  std::sort(posMuons.begin(), posMuons.end(), compareBypT);
-  std::sort(negMuons.begin(), negMuons.end(), compareBypT);
-
-  // Sorting leptons
-  std::sort(leptons.begin(), leptons.end(), compareBypT);
-  std::sort(posLeptons.begin(), posLeptons.end(), compareBypT);
-  std::sort(negLeptons.begin(), negLeptons.end(), compareBypT);
-}
-
-bool BTagVeto(const std::vector<fastjet::PseudoJet> &jets, const std::vector<double> &mistagSF)
-{
-  int btaggedCount = 0;
-
-  for (std::size_t i = 0; i < jets.size(); ++i)
-  {
-    const auto &jet = jets[i];
-    double pt = jet.pt();
-    double eff = 0.01 + 0.000038 * pt;
-
-    if (i < mistagSF.size())
-    {
-      eff = std::min(1.0, eff * mistagSF[i]);
-    }
-
-    double rnd = static_cast<double>(rand()) / RAND_MAX;
-    if (rnd < eff)
-    {
-      btaggedCount++;
-      if (btaggedCount > 1)
-      {
-        return false;
-      }
-    }
-  }
-
-  return true;
 }
 
 std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>>
@@ -630,6 +570,135 @@ getAk4jets(const std::vector<RecTrackFormat> &EFlowTracks,
   }
 
   return std::make_pair(inclusive_jets, cluster_constituents);
+}
+
+std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>>
+filter_Ak4jetsAndConstituents(const std::vector<fastjet::PseudoJet> &jets,
+                              const std::vector<std::vector<fastjet::PseudoJet>> &constituents,
+                              float ptmin,
+                              float etamax,
+                              float deltaRmin,
+                              const std::vector<RecLeptonFormat> &leptons)
+{
+  std::vector<fastjet::PseudoJet> filteredJets;
+  std::vector<std::vector<fastjet::PseudoJet>> filteredConstituents;
+
+  for (std::size_t i = 0; i < jets.size(); ++i)
+  {
+    const auto &jet = jets[i];
+
+    if (jet.pt() < ptmin)
+      continue;
+    if (std::fabs(jet.eta()) > etamax)
+      continue;
+
+    bool passesDeltaRCut = true;
+    for (const auto &lepton : leptons)
+    {
+      if (calculateDeltaR(lepton, jet) <= deltaRmin)
+      {
+        passesDeltaRCut = false;
+        break;
+      }
+    }
+
+    if (!passesDeltaRCut)
+      continue;
+
+    filteredJets.push_back(jet);
+    filteredConstituents.push_back(constituents[i]);
+  }
+
+  return std::make_pair(filteredJets, filteredConstituents);
+}
+
+std::vector<fastjet::PseudoJet> applyEnergyScale(const std::vector<fastjet::PseudoJet> &jets)
+{
+  std::vector<fastjet::PseudoJet> scaledJets;
+  for (auto jet : jets)
+  {
+    double pt = jet.pt();
+    double eta = jet.eta();
+
+    // Compute the scale factor using the given formula:
+    // scale = sqrt( (2.5 - 0.15 * |eta|)^2 / pt + 1.5 )
+    double scale = sqrt(pow(2.5 - 0.15 * fabs(eta), 2.0) / pt + 1.5);
+
+    // Only apply the scale if it's positive
+    if (scale > 0.0)
+    {
+      jet.reset_momentum(jet.px() * scale, jet.py() * scale, jet.pz() * scale, jet.e() * scale);
+    }
+    scaledJets.push_back(jet);
+  }
+  return scaledJets;
+}
+
+std::vector<double> computeSoftLeptonMistagSF(const std::vector<fastjet::PseudoJet> &jets, const std::vector<RecTrackFormat> &tracks, double drMatch) {
+  std::vector<double> sfVec;
+  sfVec.reserve(jets.size());
+  for (const auto &jet : jets) {
+    double sf = 1.0;  // default: no qualifying soft lepton
+    for (const auto &trk : tracks) {
+      int absId = std::abs(trk.pdgid());
+      if (absId != 11 && absId != 13) continue;
+      if (calculateDeltaR(trk, jet) < drMatch)
+      {
+        if ((absId == 13 || absId == 11) && trk.pt() > 5.0)
+        {
+          sf = 2.0;
+          break;                            
+        }
+      }
+    }
+    sfVec.push_back(sf);
+  }
+  return sfVec;
+}
+
+bool BTagVeto(const std::vector<fastjet::PseudoJet> &jets, const std::vector<double> &mistagSF)
+{
+
+  for (std::size_t i = 0; i < jets.size(); ++i)
+  {
+    const auto &jet = jets[i];
+    double pt = jet.pt();
+    double eff = 0.01 + 0.000038 * pt;
+
+    if (i < mistagSF.size())
+    {
+      eff = std::min(1.0, eff * mistagSF[i]);
+    }
+
+    double rnd = static_cast<double>(rand()) / RAND_MAX;
+    if (rnd < eff)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::tuple<std::vector<RecTrackFormat>, std::vector<RecTrackFormat>> doTracksDropping(const std::vector<RecTrackFormat> &tracks) {
+  const double probLowPt  = 0.03; // low-pt drop probability
+  const double probHighPt = 0.01;  // high-pt drop probability
+
+  // Central is just the original tracks
+  std::vector<RecTrackFormat> central = tracks;
+  std::vector<RecTrackFormat> up;
+
+  // Apply dropping per-track
+  for (const auto &trk : tracks) {
+    double pt = trk.pt();
+    double prob = (pt < 20.0 ? probLowPt : probHighPt);
+    double r = static_cast<double>(rand()) / RAND_MAX;
+    if (r > prob) {
+      up.push_back(trk);
+    }
+  }
+
+  return std::make_tuple(central, up);
 }
 
 std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::PseudoJet>>> getAk15Jets(
@@ -692,27 +761,6 @@ std::pair<std::vector<fastjet::PseudoJet>, std::vector<std::vector<fastjet::Pseu
   return std::make_pair(inclusive_jets, cluster_constituents);
 }
 
-std::vector<fastjet::PseudoJet> applyEnergyScale(const std::vector<fastjet::PseudoJet> &jets)
-{
-  std::vector<fastjet::PseudoJet> scaledJets;
-  for (auto jet : jets)
-  {
-    double pt = jet.pt();
-    double eta = jet.eta();
-
-    // Compute the scale factor using the given formula:
-    // scale = sqrt( (2.5 - 0.15 * |eta|)^2 / pt + 1.5 )
-    double scale = sqrt(pow(2.5 - 0.15 * fabs(eta), 2.0) / pt + 1.5);
-
-    // Only apply the scale if it's positive
-    if (scale > 0.0)
-    {
-      jet.reset_momentum(jet.px() * scale, jet.py() * scale, jet.pz() * scale, jet.e() * scale);
-    }
-    scaledJets.push_back(jet);
-  }
-  return scaledJets;
-}
 
 ///////////////////////////////////////////////////////////////
 //                       Initialize                          //
@@ -722,101 +770,120 @@ std::vector<fastjet::PseudoJet> applyEnergyScale(const std::vector<fastjet::Pseu
 MAbool user::Initialize(const MA5::Configuration &cfg,
                         const std::map<std::string, std::string> &parameters)
 {
-  srand(1234); // fix random seed for b-tagging
 
   // Initializing PhysicsService for RECO
   PHYSICS->recConfig().Reset();
 
   // ===== Signal region ===== //
   Manager()->AddRegionSelection("SR");
+  Manager()->AddRegionSelection("SR_TRACKUP");
 
   // ===== Selections ===== //
   Manager()->AddCut("orthogonality");
   Manager()->AddCut("oneTightLep");
   Manager()->AddCut("oneAk4");
   Manager()->AddCut("firstMETCut");
-  Manager()->AddCut("Ak15");
+
+  Manager()->AddCut("Ak15", "SR");
+  Manager()->AddCut("Ak15_TRACKUP", "SR_TRACKUP");
+
   Manager()->AddCut("secondMETCut");
   Manager()->AddCut("wPtCut");
   Manager()->AddCut("onShellW");
   Manager()->AddCut("noBTag");
-  Manager()->AddCut("dPhi_W_SUEP");
-  Manager()->AddCut("dPhi_MET_SUEP");
-  Manager()->AddCut("dPhi_Lep_SUEP");
-  Manager()->AddCut("Ak4_Ak15_Overlap");
-  Manager()->AddCut("W_SUEP_ratio");
+
+  Manager()->AddCut("dPhi_W_SUEP", "SR");
+  Manager()->AddCut("dPhi_W_SUEP_TRACKUP", "SR_TRACKUP");
+
+  Manager()->AddCut("dPhi_MET_SUEP", "SR");
+  Manager()->AddCut("dPhi_MET_SUEP_TRACKUP", "SR_TRACKUP");
+
+  Manager()->AddCut("dPhi_Lep_SUEP", "SR");
+  Manager()->AddCut("dPhi_Lep_SUEP_TRACKUP", "SR_TRACKUP");
+
+  Manager()->AddCut("Ak4_Ak15_Overlap", "SR");
+  Manager()->AddCut("Ak4_Ak15_Overlap_TRACKUP", "SR_TRACKUP");
+
+  Manager()->AddCut("W_SUEP_ratio", "SR");
+  Manager()->AddCut("W_SUEP_ratio_TRACKUP", "SR_TRACKUP");
+
   Manager()->AddCut("dPhi_MET_Ak4");
 
   // ===== Histograms ===== //
 
-  // W Histograms
-  Manager()->AddHisto("wTransverseMass", 100, 30.0, 130.0);
-  Manager()->AddHisto("wPt", 94, 60, 1000);
-  Manager()->AddHisto("wPhi", 60, -3.2, 3.2);
+  for (const auto& r : regionsForHistos)
+  {
+    // W Histograms
+    Manager()->AddHisto("wTransverseMass_"+r, 100, 30.0, 130.0, r);
+    Manager()->AddHisto("wPt_"+r, 94, 60, 1000, r);
+    Manager()->AddHisto("wPhi_"+r, 60, -3.2, 3.2, r);
 
-  // Lepton Histograms
-  Manager()->AddHisto("lepPt", 370, 30, 400);
-  Manager()->AddHisto("lepEta", 50, -2.5, 2.5);
-  Manager()->AddHisto("lepPhi", 60, -3.2, 3.2);
-  Manager()->AddHisto("looseLep", 10, 0, 10);
-  Manager()->AddHisto("tightLep", 10, 0, 10);
+    // Lepton Histograms
+    Manager()->AddHisto("lepPt_"+r, 370, 30, 400, r);
+    Manager()->AddHisto("lepEta_"+r, 50, -2.5, 2.5, r);
+    Manager()->AddHisto("lepPhi_"+r, 60, -3.2, 3.2, r);
+    Manager()->AddHisto("looseLep_"+r, 10, 0, 10, r);
+    Manager()->AddHisto("tightLep_"+r, 10, 0, 10, r);
 
-  // Muon Histograms
-  Manager()->AddHisto("muPt", 370, 30, 400);
-  Manager()->AddHisto("muEta", 50, -2.5, 2.5);
-  Manager()->AddHisto("muPhi", 60, -3.2, 3.2);
-  Manager()->AddHisto("looseMu", 10, 0, 10);
-  Manager()->AddHisto("tightMu", 10, 0, 10);
+    // Muon Histograms
+    Manager()->AddHisto("muPt_"+r, 370, 30, 400, r);
+    Manager()->AddHisto("muEta_"+r, 50, -2.5, 2.5, r);
+    Manager()->AddHisto("muPhi_"+r, 60, -3.2, 3.2, r);
+    Manager()->AddHisto("looseMu_"+r, 10, 0, 10, r);
+    Manager()->AddHisto("tightMu_"+r, 10, 0, 10, r);
 
-  // Electron Histograms
-  Manager()->AddHisto("elePt", 370, 30, 400);
-  Manager()->AddHisto("eleEta", 50, -2.5, 2.5);
-  Manager()->AddHisto("elePhi", 60, -3.2, 3.2);
-  Manager()->AddHisto("looseEle", 10, 0, 10);
-  Manager()->AddHisto("tightEle", 10, 0, 10);
+    // Electron Histograms
+    Manager()->AddHisto("elePt_"+r, 370, 30, 400, r);
+    Manager()->AddHisto("eleEta_"+r, 50, -2.5, 2.5, r);
+    Manager()->AddHisto("elePhi_"+r, 60, -3.2, 3.2, r);
+    Manager()->AddHisto("looseEle_"+r, 10, 0, 10, r);
+    Manager()->AddHisto("tightEle_"+r, 10, 0, 10, r);
 
-  // Ak4 Histograms
-  Manager()->AddHisto("NJets", 20, 0.0, 20.0);
-  Manager()->AddHisto("ak4Pt", 300, 0, 300);
-  Manager()->AddHisto("ak4Eta", 100, -5.0, 5.0);
-  Manager()->AddHisto("ak4Phi", 60, -3.2, 3.2);
-  Manager()->AddHisto("ak4NTracks", 100, 0.0, 100.0);
+    // Ak4 Histograms
+    Manager()->AddHisto("NJets_"+r, 20, 0.0, 20.0, r);
+    Manager()->AddHisto("ak4Pt_"+r, 300, 0, 300, r);
+    Manager()->AddHisto("ak4Eta_"+r, 100, -5.0, 5.0, r);
+    Manager()->AddHisto("ak4Phi_"+r, 60, -3.2, 3.2, r);
+    Manager()->AddHisto("ak4NTracks_"+r, 100, 0.0, 100.0, r);
 
-  // Ak15 Histograms
-  Manager()->AddHisto("ak15Pt", 44, 60, 500);
-  Manager()->AddHisto("ak15Eta", 50, -2.5, 2.5);
-  Manager()->AddHisto("ak15Phi", 50, -3.25, 3.25);
-  Manager()->AddHisto("ak15NTracks", 200, 0.0, 200.0);
-  Manager()->AddHisto("ak15Mass", 30, 0, 400);
+    // Ak15 Histograms
+    Manager()->AddHisto("ak15Pt_"+r, 44, 60, 500, r);
+    Manager()->AddHisto("ak15Eta_"+r, 50, -2.5, 2.5, r);
+    Manager()->AddHisto("ak15Phi_"+r, 50, -3.25, 3.25, r);
+    Manager()->AddHisto("ak15NTracks_"+r, 200, 0.0, 200.0, r);
+    Manager()->AddHisto("ak15Mass_"+r, 30, 0, 400, r);
 
-  // Sphericity Histograms
-  Manager()->AddHisto("labSphericity", 70, 0.3, 1.0);
-  Manager()->AddHisto("boostedSphericity", 70, 0.3, 1.0);
+    // Sphericity Histograms
+    Manager()->AddHisto("labSphericity_"+r, 70, 0.3, 1.0, r);
+    Manager()->AddHisto("boostedSphericity_"+r, 70, 0.3, 1.0, r);
 
-  // MET Histograms
-  Manager()->AddHisto("metPt", 94, 30, 500);
-  Manager()->AddHisto("metPhi", 100, -3, 3);
+    // MET Histograms
+    Manager()->AddHisto("metPt_"+r, 94, 30, 500, r);
+    Manager()->AddHisto("metPhi_"+r, 100, -3, 3, r);
 
-  // ABCD Histograms
-  Manager()->AddHisto("ABCD_A", 10, 10.0, 20.0);
-  Manager()->AddHisto("ABCD_B", 10, 20.0, 30.0);
-  Manager()->AddHisto("ABCD_C", 170, 30.0, 200.0);
-  Manager()->AddHisto("ABCD_D", 10, 10.0, 20.0);
-  Manager()->AddHisto("ABCD_E", 10, 20.0, 30.0);
-  Manager()->AddHisto("ABCD_F0", 10, 30.0, 40.0);
-  Manager()->AddHisto("ABCD_F1", 10, 40.0, 50.0);
-  Manager()->AddHisto("ABCD_F2", 10, 50.0, 60.0);
-  Manager()->AddHisto("ABCD_F3", 20, 60.0, 80.0);
-  Manager()->AddHisto("ABCD_F4", 120, 80.0, 200.0);
-  Manager()->AddHisto("ABCD_G", 10, 10.0, 20.0);
-  Manager()->AddHisto("ABCD_H", 10, 20.0, 30.0);
-  Manager()->AddHisto("ABCD_SR0", 10, 30.0, 40.0);
-  Manager()->AddHisto("ABCD_SR1", 10, 40.0, 50.0);
-  Manager()->AddHisto("ABCD_SR2", 10, 50.0, 60.0);
-  Manager()->AddHisto("ABCD_SR3", 20, 60.0, 80.0);
-  Manager()->AddHisto("ABCD_SR4", 120, 80.0, 200.0);
+    Manager()->AddHisto("dPhi_MET_Lep_"+r, 100, -3.14, 3.14, r);
+    Manager()->AddHisto("dPhi_MET_SUEP_"+r, 100, -3.14, 3.14, r);
 
-  // everything runs smoothly //
+    // ABCD Histograms
+    Manager()->AddHisto("ABCD_A_"+r, 10, 10.0, 20.0, r);
+    Manager()->AddHisto("ABCD_B_"+r, 10, 20.0, 30.0, r);
+    Manager()->AddHisto("ABCD_C_"+r, 170, 30.0, 200.0, r);
+    Manager()->AddHisto("ABCD_D_"+r, 10, 10.0, 20.0, r);
+    Manager()->AddHisto("ABCD_E_"+r, 10, 20.0, 30.0, r);
+    Manager()->AddHisto("ABCD_F0_"+r, 10, 30.0, 40.0, r);
+    Manager()->AddHisto("ABCD_F1_"+r, 10, 40.0, 50.0, r);
+    Manager()->AddHisto("ABCD_F2_"+r, 10, 50.0, 60.0, r);
+    Manager()->AddHisto("ABCD_F3_"+r, 20, 60.0, 80.0, r);
+    Manager()->AddHisto("ABCD_F4_"+r, 120, 80.0, 200.0, r);
+    Manager()->AddHisto("ABCD_G_"+r, 10, 10.0, 20.0, r);
+    Manager()->AddHisto("ABCD_H_"+r, 10, 20.0, 30.0, r);
+    Manager()->AddHisto("ABCD_SR0_"+r, 10, 30.0, 40.0, r);
+    Manager()->AddHisto("ABCD_SR1_"+r, 10, 40.0, 50.0, r);
+    Manager()->AddHisto("ABCD_SR2_"+r, 10, 50.0, 60.0, r);
+    Manager()->AddHisto("ABCD_SR3_"+r, 20, 60.0, 80.0, r);
+    Manager()->AddHisto("ABCD_SR4_"+r, 120, 80.0, 200.0, r);
+  }
+
   return true;
 }
 
@@ -844,23 +911,31 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   // Copy REC MET and apply positive-only fractional smearing
   RecParticleFormat smearedMET = event.rec()->MET();
   double orig_pt = smearedMET.pt();
-  double phi = smearedMET.phi();
-  // Relative smearing parameters (global test smear)
-  static thread_local std::mt19937 gen(1234);
-  std::normal_distribution<double> dist_rel(0.3079, 0.6212);
+  double phi    = smearedMET.phi();
+  // Random-number generator (thread-local)
+  static thread_local std::mt19937 gen(std::random_device{}());
+  // Compute dynamic μ and σ with your provided coefficients
+  double mu    = 21.334   / (46.505   + 0.53795 * orig_pt);
+  double sigma = 3.954    / (5.340    + 0.07439 * orig_pt);
+  // Draw fractional smear from N(μ, σ)
+  std::normal_distribution<double> dist_rel(mu, sigma);
   double delta_rel = dist_rel(gen);
-  // Only apply smear if delta_rel > 0
-  double pt_smeared = (delta_rel > 0.0) ? orig_pt * (1.0 + delta_rel) : orig_pt;
-  double px_smeared = pt_smeared * std::cos(phi);
-  double py_smeared = pt_smeared * std::sin(phi);
-  double E_smeared = pt_smeared;
+  // Apply smear only if positive
+  double pt_smeared  = (delta_rel > 0.0) ? orig_pt * (1.0 + delta_rel) : orig_pt;
+  double px_smeared  = pt_smeared * std::cos(phi);
+  double py_smeared  = pt_smeared * std::sin(phi);
+  double E_smeared   = pt_smeared;
   smearedMET.momentum().SetPxPyPzE(px_smeared, py_smeared, 0.0, E_smeared);
 
   // DEFINING OBJECT CUTS
 
   // Isolation Eflow Collections
   std::vector<RecTrackFormat> eflowTracks = event.rec()->EFlowTracks();
-  std::vector<RecTrackFormat> trackerTracks = event.rec()->tracks();
+
+  // Track dropping systematic: get central and variation
+  std::vector<RecTrackFormat> centralTracks, TRACKUP;
+  std::tie(centralTracks, TRACKUP) = doTracksDropping(event.rec()->tracks());
+
   std::vector<RecParticleFormat> eflowPhotons = event.rec()->EFlowPhotons();
   std::vector<RecParticleFormat> eflowNeutralHadrons = event.rec()->EFlowNeutralHadrons();
 
@@ -887,28 +962,29 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   float const AK4_PT_MIN = 30;
   float const AK4_ETA_MAX = 2.4;
   float const AK4LEP_DR = 0.4;
+  const double DR_MATCH_SOFTLEP = 0.4;
 
   //////////////////////////////////////////////
   //  Applying Base Lepton Object Selections  //
   //////////////////////////////////////////////
 
   // Electron Collections
-  vector<RecLeptonFormat> loose_electrons = filter_electrons(event.rec()->electrons(), LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose");
-  vector<RecLeptonFormat> loose_posElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
-  vector<RecLeptonFormat> loose_negElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
+  vector<RecLeptonFormat> loose_electrons = filter_electrons(event.rec()->electrons(), LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+  vector<RecLeptonFormat> loose_posElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
+  vector<RecLeptonFormat> loose_negElectrons = filter_electrons(loose_electrons, LOOSE_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
 
-  vector<RecLeptonFormat> tight_electrons = filter_electrons(loose_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight");
-  vector<RecLeptonFormat> tight_posElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
-  vector<RecLeptonFormat> tight_negElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+  vector<RecLeptonFormat> tight_electrons = filter_electrons(loose_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+  vector<RecLeptonFormat> tight_posElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+  vector<RecLeptonFormat> tight_negElectrons = filter_electrons(tight_electrons, TIGHT_ELECTRON_PT_MIN, ELECTRON_ETA_MAX, ELECTRON_ISO_PT_MIN, ELECTRON_ISO_DR_MAX, ELECTRON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
 
   // Muon Collections
-  vector<RecLeptonFormat> loose_muons = filter_muons(event.rec()->muons(), LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose");
-  vector<RecLeptonFormat> loose_posMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
-  vector<RecLeptonFormat> loose_negMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
+  vector<RecLeptonFormat> loose_muons = filter_muons(event.rec()->muons(), LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose");
+  vector<RecLeptonFormat> loose_posMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose", "+");
+  vector<RecLeptonFormat> loose_negMuons = filter_muons(loose_muons, LOOSE_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, LOOSE_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "loose", "-");
 
-  vector<RecLeptonFormat> tight_muons = filter_muons(loose_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight");
-  vector<RecLeptonFormat> tight_posMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
-  vector<RecLeptonFormat> tight_negMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, trackerTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
+  vector<RecLeptonFormat> tight_muons = filter_muons(loose_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight");
+  vector<RecLeptonFormat> tight_posMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight", "+");
+  vector<RecLeptonFormat> tight_negMuons = filter_muons(tight_muons, TIGHT_MUON_PT_MIN, MUON_ETA_MAX, MUON_D0, TIGHT_MUON_DZ, MUON_ISO_PT_MIN, MUON_ISO_DR_MAX, MUON_ISO_DR_MIN, centralTracks, eflowPhotons, eflowNeutralHadrons, "tight", "-");
 
   // Combining loose Leptons
   vector<RecLeptonFormat> loose_leptons = loose_electrons;
@@ -1003,6 +1079,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
 
   // Ak15 pT
   float const AK15JET_PT_MIN = 60;
+  float const AK15JET_NTRACKS_MIN = 10;
 
   // Misc
   float const MIN_DPHI = 1.5;
@@ -1021,9 +1098,14 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   double wTransverseMass = std::sqrt(2.0 * lepPt * metPt * (1.0 - std::cos(dphiW)));
 
   // Do Ak15 clustering
-  auto Ak15result = getAk15Jets(event.rec()->tracks(), tight_leptons, TRACK_PT_MIN, TRACK_ETA_MAX, TRACK_D0_MAX, TRACK_DZ_MAX, TRACK_DR_MAX);
+  auto Ak15result = getAk15Jets(centralTracks, tight_leptons, TRACK_PT_MIN, TRACK_ETA_MAX, TRACK_D0_MAX, TRACK_DZ_MAX, TRACK_DR_MAX);
   std::vector<fastjet::PseudoJet> Ak15Jets = Ak15result.first;
   std::vector<std::vector<fastjet::PseudoJet>> Ak15jetConstituents = Ak15result.second;
+
+  // Do Ak15 clustering (TRACKUP)
+  auto Ak15result_TRACKUP = getAk15Jets(TRACKUP, tight_leptons, TRACK_PT_MIN, TRACK_ETA_MAX, TRACK_D0_MAX, TRACK_DZ_MAX, TRACK_DR_MAX);
+  std::vector<fastjet::PseudoJet> Ak15Jets_TRACKUP = Ak15result_TRACKUP.first;
+  std::vector<std::vector<fastjet::PseudoJet>> Ak15jetConstituents_TRACKUP = Ak15result_TRACKUP.second;
 
   //////////////////////////////////////////////
   //  Second Round of Event level selections  //
@@ -1032,13 +1114,26 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   // Require at least one Ak15 with pT > 60 GeV
   bool oneAk15 = (Ak15Jets.size() > 0);
   bool minAk15pT = false;
+  bool minAk15Constituents = false;
   if (oneAk15)
   {
     minAk15pT = (Ak15Jets.at(0).pt() > AK15JET_PT_MIN);
+    minAk15Constituents = (Ak15jetConstituents.at(0).size() >= AK15JET_NTRACKS_MIN);
   }
-  bool Ak15 = (oneAk15) && (minAk15pT);
-  if (not Manager()->ApplyCut(Ak15, "Ak15"))
-    return true;
+  bool Ak15 = oneAk15 && minAk15pT && minAk15Constituents;
+
+  bool oneAk15_TRACKUP = (Ak15Jets_TRACKUP.size() > 0);
+  bool minAk15pT_TRACKUP = false;
+  bool minAk15Constituents_TRACKUP = false;
+  if (oneAk15_TRACKUP)
+  {
+    minAk15pT_TRACKUP = (Ak15Jets_TRACKUP.at(0).pt() > AK15JET_PT_MIN);
+    minAk15Constituents_TRACKUP = (Ak15jetConstituents_TRACKUP.at(0).size() >= AK15JET_NTRACKS_MIN);
+  }
+  bool Ak15_TRACKUP = oneAk15_TRACKUP && minAk15pT_TRACKUP && minAk15Constituents_TRACKUP;
+
+  Manager()->ApplyCut(Ak15, "Ak15");
+  Manager()->ApplyCut(Ak15_TRACKUP, "Ak15_TRACKUP");
 
   // Second MET pT Cut
   bool secondMETCut = (smearedMET.pt() > SECOND_MET_PT);
@@ -1055,82 +1150,61 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   if (!Manager()->ApplyCut(onShellW, "onShellW"))
     return true;
 
-  // Btag Veto
-
-  // ------------------------------------------------------------
-  // Determine soft‑lepton mistag scale factor for each AK4 jet
-  //   – use tracker tracks with |PDGID| = 11 or 13
-  // ------------------------------------------------------------
-  const double DR_MATCH_SOFTLEP = 0.4;
-  std::vector<double> Ak4jetMistagSF;
-  Ak4jetMistagSF.reserve(Ak4jets.size());
-
-  for (const auto &jet : Ak4jets)
-  {
-    double sf = 1.0;   // default: no qualifying soft lepton
-
-    for (const auto &trk : trackerTracks)
-    {
-      int absId = std::abs(trk.pdgid());
-      if (absId != 11 && absId != 13) continue;
-
-      if (calculateDeltaR(trk, jet) < DR_MATCH_SOFTLEP)
-      {
-        if ((absId == 13 || absId == 11) && trk.pt() > 5.0)
-        {
-          sf = 2.0;
-          break;                            
-        }
-      }
-    }
-    Ak4jetMistagSF.push_back(sf);
-  }
-
+  // Compute soft‑lepton mistag SF for central and up tracks
+  auto Ak4jetMistagSF         = computeSoftLeptonMistagSF(Ak4jets, centralTracks, DR_MATCH_SOFTLEP);
   bool noBTag = BTagVeto(Ak4jets, Ak4jetMistagSF);
   if (not Manager()->ApplyCut(noBTag, "noBTag"))
     return true;
 
   // dPhi(W, SUEP)
-  bool dPhi_W_SUEP = dPhiCut(recoW, Ak15Jets.at(0), MIN_DPHI);
-  if (not Manager()->ApplyCut(dPhi_W_SUEP, "dPhi_W_SUEP"))
-    return true;
+  bool dPhi_W_SUEP = (!Ak15Jets.empty() && dPhiCut(recoW, Ak15Jets.at(0), MIN_DPHI));
+  bool dPhi_W_SUEP_TRACKUP = (!Ak15Jets_TRACKUP.empty() && dPhiCut(recoW, Ak15Jets_TRACKUP.at(0), MIN_DPHI));
+  Manager()->ApplyCut(dPhi_W_SUEP, "dPhi_W_SUEP");
+  Manager()->ApplyCut(dPhi_W_SUEP_TRACKUP, "dPhi_W_SUEP_TRACKUP");
 
   // dPhi(MET, SUEP)
-  bool dPhi_MET_SUEP = dPhiCut(smearedMET, Ak15Jets.at(0), MIN_DPHI);
-  if (not Manager()->ApplyCut(dPhi_MET_SUEP, "dPhi_MET_SUEP"))
-    return true;
+  bool dPhi_MET_SUEP = (!Ak15Jets.empty() && dPhiCut(smearedMET, Ak15Jets.at(0), MIN_DPHI));
+  bool dPhi_MET_SUEP_TRACKUP = (!Ak15Jets_TRACKUP.empty() && dPhiCut(smearedMET, Ak15Jets_TRACKUP.at(0), MIN_DPHI));
+  Manager()->ApplyCut(dPhi_MET_SUEP, "dPhi_MET_SUEP");
+  Manager()->ApplyCut(dPhi_MET_SUEP_TRACKUP, "dPhi_MET_SUEP_TRACKUP");
 
   // dPhi(Lepton, SUEP)
-  bool dPhi_Lep_SUEP = dPhiCut(tight_leptons.at(0), Ak15Jets.at(0), MIN_DPHI);
-  if (not Manager()->ApplyCut(dPhi_Lep_SUEP, "dPhi_Lep_SUEP"))
-    return true;
+  bool dPhi_Lep_SUEP = (!Ak15Jets.empty() && dPhiCut(tight_leptons.at(0), Ak15Jets.at(0), MIN_DPHI));
+  bool dPhi_Lep_SUEP_TRACKUP = (!Ak15Jets_TRACKUP.empty() && dPhiCut(tight_leptons.at(0), Ak15Jets_TRACKUP.at(0), MIN_DPHI));
+  Manager()->ApplyCut(dPhi_Lep_SUEP, "dPhi_Lep_SUEP");
+  Manager()->ApplyCut(dPhi_Lep_SUEP_TRACKUP, "dPhi_Lep_SUEP_TRACKUP");
 
-  // Require Ak4 and Ak15 Overlap - ZH WAY
-  // bool Ak4_Ak15_Overlap = (calculateDeltaR(Ak4jets.at(0), Ak15Jets.at(0)) < 1.5);
-  // if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap"))
-  //  return true;
-
-  // Require at least one Ak4 jet to overlap with Ak15 - WH WAY
   bool Ak4_Ak15_Overlap = false;
-  for (const auto &ak4 : Ak4jets)
-  {
-    if (calculateDeltaR(ak4, Ak15Jets.at(0)) < 1.5)
-    {
-      Ak4_Ak15_Overlap = true;
-      break;
+  if (!Ak15Jets.empty()) {
+    for (const auto &ak4 : Ak4jets) {
+      if (calculateDeltaR(ak4, Ak15Jets.at(0)) < 1.5) {
+        Ak4_Ak15_Overlap = true;
+        break;
+      }
     }
   }
-  if (not Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap"))
-    return true;
+  Manager()->ApplyCut(Ak4_Ak15_Overlap, "Ak4_Ak15_Overlap");
+
+  bool Ak4_Ak15_Overlap_TRACKUP = false;
+  if (!Ak15Jets_TRACKUP.empty()) {
+    for (const auto &ak4 : Ak4jets) {
+      if (calculateDeltaR(ak4, Ak15Jets_TRACKUP.at(0)) < 1.5) {
+        Ak4_Ak15_Overlap_TRACKUP = true;
+        break;
+      }
+    }
+  }
+  Manager()->ApplyCut(Ak4_Ak15_Overlap_TRACKUP, "Ak4_Ak15_Overlap_TRACKUP");
 
   // WpT / SUEPpT < 3
-  bool W_SUEP_ratio = (recoW.pt() / Ak15Jets.at(0).pt() < W_SUEP_PT_RATIO);
-  if (not Manager()->ApplyCut(W_SUEP_ratio, "W_SUEP_ratio"))
-    return true;
+  bool W_SUEP_ratio = (!Ak15Jets.empty() && (recoW.pt() / Ak15Jets.at(0).pt() < W_SUEP_PT_RATIO));
+  bool W_SUEP_ratio_TRACKUP = (!Ak15Jets_TRACKUP.empty() && (recoW.pt() / Ak15Jets_TRACKUP.at(0).pt() < W_SUEP_PT_RATIO));
+  Manager()->ApplyCut(W_SUEP_ratio, "W_SUEP_ratio");
+  Manager()->ApplyCut(W_SUEP_ratio_TRACKUP, "W_SUEP_ratio_TRACKUP");
 
   // dPhi(MET, Ak4)
-  bool dPhi_MET_Ak4 = dPhi_Ak4_MET(smearedMET, Ak4jets) > 1.5;
-  if (not Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4"))
+  bool dPhi_MET_Ak4 = (!Ak4jets.empty() && dPhi_Ak4_MET(smearedMET, Ak4jets) > 1.5);
+  if (!Manager()->ApplyCut(dPhi_MET_Ak4, "dPhi_MET_Ak4"))
     return true;
 
   //////////////////////////////////////////////
@@ -1138,133 +1212,248 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
   //////////////////////////////////////////////
 
   // Calculating Lab and Boosted Sphericity
-  double labSphericity = sphericity(Ak15jetConstituents.at(0), 1.0);
-  std::vector<fastjet::PseudoJet> boostedConstituents = boostToSUEP(Ak15result.second.at(0), Ak15result.first.at(0));
-  double boostedSphericity = sphericity(boostedConstituents, 1.0);
+  double labSphericity_CENTRAL = 0.0;
+  double boostedSphericity_CENTRAL = 0.0;
+  double labSphericity_TRACKUP = 0.0;
+  double boostedSphericity_TRACKUP = 0.0;
+
+  if (!Ak15Jets.empty()) {
+    labSphericity_CENTRAL = sphericity(Ak15jetConstituents.at(0), 1.0);
+    if (Ak15jetConstituents.at(0).size() > 1) {
+      auto boosted_CENTRAL = boostToSUEP(Ak15jetConstituents.at(0), Ak15Jets.at(0));
+      boostedSphericity_CENTRAL = sphericity(boosted_CENTRAL, 1.0);
+    } 
+    else {
+      boostedSphericity_CENTRAL = 0.0;
+    }
+  }
+
+  if (!Ak15Jets_TRACKUP.empty()) {
+    labSphericity_TRACKUP = sphericity(Ak15jetConstituents_TRACKUP.at(0), 1.0);
+    if (Ak15jetConstituents_TRACKUP.at(0).size() > 1) {
+      auto boosted_TRACKUP = boostToSUEP(Ak15jetConstituents_TRACKUP.at(0), Ak15Jets_TRACKUP.at(0));
+      boostedSphericity_TRACKUP = sphericity(boosted_TRACKUP, 1.0);
+    } 
+    else {
+      boostedSphericity_TRACKUP = 0.0;
+    }
+  }
 
   // W Histograms
-  Manager()->FillHisto("wTransverseMass", wTransverseMass);
-  Manager()->FillHisto("wPt", recoW.pt());
-  Manager()->FillHisto("wPhi", recoW.phi());
+  FillHistoAllRegions("wTransverseMass", wTransverseMass, regionsForHistos);
+  FillHistoAllRegions("wPt", recoW.pt(), regionsForHistos);
+  FillHistoAllRegions("wPhi", recoW.phi(), regionsForHistos);
 
   // Lepton Histograms
-  Manager()->FillHisto("lepPt", tight_leptons.at(0).pt());
-  Manager()->FillHisto("lepEta", tight_leptons.at(0).eta());
-  Manager()->FillHisto("lepPhi", tight_leptons.at(0).phi());
-  Manager()->FillHisto("looseLep", loose_leptons.size());
-  Manager()->FillHisto("tightLep", tight_leptons.size());
+  FillHistoAllRegions("lepPt", tight_leptons.at(0).pt(), regionsForHistos);
+  FillHistoAllRegions("lepEta", tight_leptons.at(0).eta(), regionsForHistos);
+  FillHistoAllRegions("lepPhi", tight_leptons.at(0).phi(), regionsForHistos);
+  FillHistoAllRegions("looseLep", loose_leptons.size(), regionsForHistos);
+  FillHistoAllRegions("tightLep", tight_leptons.size(), regionsForHistos);
 
   // Muon or Electron Histograms
   if (tight_muons.size() > 0)
   {
-    Manager()->FillHisto("muPt", tight_muons.at(0).pt());
-    Manager()->FillHisto("muEta", tight_muons.at(0).eta());
-    Manager()->FillHisto("muPhi", tight_muons.at(0).phi());
-    Manager()->FillHisto("looseMu", loose_muons.size());
-    Manager()->FillHisto("tightMu", tight_muons.size());
+    FillHistoAllRegions("muPt", tight_muons.at(0).pt(), regionsForHistos);
+    FillHistoAllRegions("muEta", tight_muons.at(0).eta(), regionsForHistos);
+    FillHistoAllRegions("muPhi", tight_muons.at(0).phi(), regionsForHistos);
+    FillHistoAllRegions("looseMu", loose_muons.size(), regionsForHistos);
+    FillHistoAllRegions("tightMu", tight_muons.size(), regionsForHistos);
   }
   else
   {
-    Manager()->FillHisto("elePt", tight_electrons.at(0).pt());
-    Manager()->FillHisto("eleEta", tight_electrons.at(0).eta());
-    Manager()->FillHisto("elePhi", tight_electrons.at(0).phi());
-    Manager()->FillHisto("looseEle", loose_electrons.size());
-    Manager()->FillHisto("tightEle", tight_electrons.size());
+    FillHistoAllRegions("elePt", tight_electrons.at(0).pt(), regionsForHistos);
+    FillHistoAllRegions("eleEta", tight_electrons.at(0).eta(), regionsForHistos);
+    FillHistoAllRegions("elePhi", tight_electrons.at(0).phi(), regionsForHistos);
+    FillHistoAllRegions("looseEle", loose_electrons.size(), regionsForHistos);
+    FillHistoAllRegions("tightEle", tight_electrons.size(), regionsForHistos);
   }
 
   // Ak4 Histograms
-  Manager()->FillHisto("NJets", Ak4jets.size());
-  Manager()->FillHisto("ak4Pt", Ak4jets.at(0).pt());
-  Manager()->FillHisto("ak4Eta", Ak4jets.at(0).eta());
-  Manager()->FillHisto("ak4Phi", normalizePhi(Ak4jets.at(0).phi()));
-  Manager()->FillHisto("ak4NTracks", Ak4jetConstituents.at(0).size());
-
-  // Ak15 Histograms
-  Manager()->FillHisto("ak15Pt", Ak15Jets.at(0).pt());
-  Manager()->FillHisto("ak15NTracks", Ak15jetConstituents.at(0).size());
-  Manager()->FillHisto("ak15Eta", Ak15Jets.at(0).eta());
-  Manager()->FillHisto("ak15Phi", normalizePhi(Ak15Jets.at(0).phi()));
-  Manager()->FillHisto("ak15Mass", Ak15Jets.at(0).m());
+  FillHistoAllRegions("NJets", Ak4jets.size(), regionsForHistos);
+  FillHistoAllRegions("ak4Pt", Ak4jets.at(0).pt(), regionsForHistos);
+  FillHistoAllRegions("ak4Eta", Ak4jets.at(0).eta(), regionsForHistos);
+  FillHistoAllRegions("ak4Phi", normalizePhi(Ak4jets.at(0).phi()), regionsForHistos);
+  FillHistoAllRegions("ak4NTracks", Ak4jetConstituents.at(0).size(), regionsForHistos);
 
   // MET Histograms
-  Manager()->FillHisto("metPt", smearedMET.pt());
-  Manager()->FillHisto("metPhi", smearedMET.phi());
+  FillHistoAllRegions("metPt", smearedMET.pt(), regionsForHistos);
+  FillHistoAllRegions("metPhi", smearedMET.phi(), regionsForHistos);
+  FillHistoAllRegions("dPhi_MET_Lep", computeDeltaPhi(smearedMET.phi(),tight_leptons.at(0).phi()), regionsForHistos);
 
-  // Sphericity
-  Manager()->FillHisto("labSphericity", labSphericity);
-  Manager()->FillHisto("boostedSphericity", boostedSphericity);
+  // Ak15 Histograms
+  if(!Ak15Jets.empty()){
+    FillHistoAllRegions("ak15Pt", Ak15Jets.at(0).pt(), regionsForHistos_CENTRAL);
+    FillHistoAllRegions("ak15NTracks", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    FillHistoAllRegions("ak15Eta", Ak15Jets.at(0).eta(), regionsForHistos_CENTRAL);
+    FillHistoAllRegions("ak15Phi", normalizePhi(Ak15Jets.at(0).phi()), regionsForHistos_CENTRAL);
+    FillHistoAllRegions("ak15Mass", Ak15Jets.at(0).m(), regionsForHistos_CENTRAL);
+  
+    FillHistoAllRegions("dPhi_MET_SUEP", computeDeltaPhi(smearedMET.phi(),normalizePhi(Ak15Jets.at(0).phi())), regionsForHistos_CENTRAL);
+  
+    FillHistoAllRegions("labSphericity", labSphericity_CENTRAL, regionsForHistos_CENTRAL);
+    FillHistoAllRegions("boostedSphericity", boostedSphericity_CENTRAL, regionsForHistos_CENTRAL);
 
-  // Extended ABCD regions
-  if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.3 <= boostedSphericity && boostedSphericity < 0.4))
-  {
-    Manager()->FillHisto("ABCD_A", Ak15jetConstituents.at(0).size());
-  }
-  if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.3 <= boostedSphericity && boostedSphericity < 0.4))
-  {
-    Manager()->FillHisto("ABCD_B", Ak15jetConstituents.at(0).size());
-  }
-  if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.3 <= boostedSphericity && boostedSphericity < 0.4))
-  {
-    Manager()->FillHisto("ABCD_C", Ak15jetConstituents.at(0).size());
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.3 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.4))
+    {
+      FillHistoAllRegions("ABCD_A", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.3 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.4))
+    {
+      FillHistoAllRegions("ABCD_B", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.3 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.4))
+    {
+      FillHistoAllRegions("ABCD_C", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_D", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_E", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F0", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F1", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F2", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F3", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.4 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F4", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+
+    if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_G", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_H", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR0", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR1", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR2", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR3", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+    if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.5 <= boostedSphericity_CENTRAL && boostedSphericity_CENTRAL <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR4", Ak15jetConstituents.at(0).size(), regionsForHistos_CENTRAL);
+    }
+
   }
 
-  if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_D", Ak15jetConstituents.at(0).size());
-  }
-  if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_E", Ak15jetConstituents.at(0).size());
-  }
-  if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_F0", Ak15jetConstituents.at(0).size());
-  }
-  if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_F1", Ak15jetConstituents.at(0).size());
-  }
-  if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_F2", Ak15jetConstituents.at(0).size());
-  }
-  if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_F3", Ak15jetConstituents.at(0).size());
-  }
-  if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.4 <= boostedSphericity && boostedSphericity < 0.5))
-  {
-    Manager()->FillHisto("ABCD_F4", Ak15jetConstituents.at(0).size());
+  // Ak15 Histograms (TRACKUP)
+  if(!Ak15Jets_TRACKUP.empty()){
+    FillHistoAllRegions("ak15Pt", Ak15Jets_TRACKUP.at(0).pt(), regionsForHistos_TRACKUP);
+    FillHistoAllRegions("ak15NTracks", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    FillHistoAllRegions("ak15Eta", Ak15Jets_TRACKUP.at(0).eta(), regionsForHistos_TRACKUP);
+    FillHistoAllRegions("ak15Phi", normalizePhi(Ak15Jets_TRACKUP.at(0).phi()), regionsForHistos_TRACKUP);
+    FillHistoAllRegions("ak15Mass", Ak15Jets_TRACKUP.at(0).m(), regionsForHistos_TRACKUP);
+  
+    FillHistoAllRegions("dPhi_MET_SUEP", computeDeltaPhi(smearedMET.phi(),normalizePhi(Ak15Jets_TRACKUP.at(0).phi())), regionsForHistos_TRACKUP);
+  
+    FillHistoAllRegions("labSphericity", labSphericity_TRACKUP, regionsForHistos_TRACKUP);
+    FillHistoAllRegions("boostedSphericity", boostedSphericity_TRACKUP, regionsForHistos_TRACKUP);
+
+    if ((10 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 20) && (0.3 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.4))
+    {
+      FillHistoAllRegions("ABCD_A", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((20 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 30) && (0.3 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.4))
+    {
+      FillHistoAllRegions("ABCD_B", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((30 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 200) && (0.3 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.4))
+    {
+      FillHistoAllRegions("ABCD_C", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+
+    if ((10 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 20) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_D", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((20 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 30) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_E", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((30 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 40) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F0", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((40 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 50) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F1", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((50 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 60) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F2", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((60 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 80) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F3", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((80 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 200) && (0.4 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP < 0.5))
+    {
+      FillHistoAllRegions("ABCD_F4", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+
+    if ((10 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 20) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_G", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((20 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 30) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_H", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((30 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 40) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR0", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((40 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 50) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR1", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((50 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 60) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR2", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((60 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 80) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR3", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+    if ((80 <= (Ak15jetConstituents_TRACKUP.at(0).size()) && (Ak15jetConstituents_TRACKUP.at(0).size()) < 200) && (0.5 <= boostedSphericity_TRACKUP && boostedSphericity_TRACKUP <= 1.0))
+    {
+      FillHistoAllRegions("ABCD_SR4", Ak15jetConstituents_TRACKUP.at(0).size(), regionsForHistos_TRACKUP);
+    }
+
   }
 
-  if ((10 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 20) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_G", Ak15jetConstituents.at(0).size());
-  }
-  if ((20 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 30) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_H", Ak15jetConstituents.at(0).size());
-  }
-  if ((30 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 40) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_SR0", Ak15jetConstituents.at(0).size());
-  }
-  if ((40 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 50) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_SR1", Ak15jetConstituents.at(0).size());
-  }
-  if ((50 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 60) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_SR2", Ak15jetConstituents.at(0).size());
-  }
-  if ((60 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 80) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_SR3", Ak15jetConstituents.at(0).size());
-  }
-  if ((80 <= (Ak15jetConstituents.at(0).size()) && (Ak15jetConstituents.at(0).size()) < 200) && (0.5 <= boostedSphericity && boostedSphericity <= 1.0))
-  {
-    Manager()->FillHisto("ABCD_SR4", Ak15jetConstituents.at(0).size());
-  }
+
 
   return true;
 }
