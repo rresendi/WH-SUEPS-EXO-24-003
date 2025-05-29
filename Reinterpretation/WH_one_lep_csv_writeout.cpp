@@ -1171,8 +1171,7 @@ bool user::Execute(SampleFormat &sample, const EventFormat &event)
       << tight_leptons.size() << ","                     // int
       << Ak4jets.size() << ","                        // int
       << Ak15Jets.at(0).pt() << ","                       // float
-      << recoW.phi() << ","                       // double
-      << ratio << "\n";
+      << recoW.phi() << "\n";                       // double
 
   outFile.close();
 
